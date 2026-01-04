@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LumiFlow v2.0</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="flex: 1;"></div>
+                <div style="text-align: center; flex: 2;">
+                    <h1 class="neon-text">LumiFlow</h1>
+                    <p class="subtitle">Context Manager v2.1</p>
+                </div>
+                <div style="flex: 1; text-align: right;">
+                    <button id="settings-btn" class="icon-btn" title="Settings" style="font-size: 1.2rem;">⚙</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Settings Panel (Hidden by default) -->
+        <div id="settings-panel" class="settings-panel" style="display: none;">
+            <div class="settings-header">
+                <span>API Settings</span>
+                <button id="close-settings-btn" class="icon-btn">×</button>
+            </div>
+            <div class="settings-content">
+                <div class="setting-item">
+                    <label>Enable API Compression</label>
+                    <div class="toggle-switch" id="api-toggle-switch">
+                        <input type="checkbox" id="api-enabled" style="display: none;">
+                    </div>
+                </div>
+                <div class="setting-item" id="api-provider-section" style="display: none;">
+                    <label>API Provider</label>
+                    <select id="api-provider" class="select-input">
+                        <option value="gemini">Google Gemini</option>
+                        <option value="openai">OpenAI</option>
+                        <option value="anthropic">Anthropic Claude</option>
+                    </select>
+                </div>
+                <div class="setting-item" id="api-key-section" style="display: none;">
+                    <label>API Key</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="password" id="api-key" class="text-input" placeholder="Enter your API key" style="flex: 1;">
+                        <button id="show-api-btn" class="icon-btn" title="Show/Hide Key" style="font-size: 1.1rem;">👁</button>
+                        <button id="clear-api-btn" class="icon-btn" title="Clear API Settings" style="font-size: 1.1rem;">✕</button>
+                    </div>
+                    <small class="help-text" id="api-status-text">Your key is stored locally and never sent to our servers</small>
+                </div>
+                <button id="save-api-btn" class="action-btn primary" style="display: none; margin-top: 12px;">Save API Settings</button>
+            </div>
+        </div>
+
+        <!-- Stats Panel -->
+        <div id="stats-area" class="stats-panel" style="display: none;">
+            <!-- Dynamically populated -->
+        </div>
+
+        <!-- Mode Toggle -->
+        <div class="mode-section">
+            <div>
+                <div class="mode-label">
+                    <span id="mode-text">Auto Mode</span>
+                </div>
+                <div class="mode-label-description">AI generates checkpoint</div>
+            </div>
+            <div class="toggle-switch" id="mode-toggle-switch">
+                <input type="checkbox" id="mode-toggle" checked style="display: none;">
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="controls">
+            <!-- Auto Mode Button -->
+            <button id="auto-compress-btn" class="action-btn primary">
+                <span class="btn-title">COMPRESS</span>
+            </button>
+
+            <!-- Manual Mode Button -->
+            <button id="manual-absorb-btn" class="action-btn primary" style="display: none;">
+                <span class="btn-title">ABSORB</span>
+            </button>
+
+            <!-- Copy All Button -->
+            <button id="copy-all-btn" class="action-btn secondary">
+                <span class="btn-title">COPY ALL</span>
+            </button>
+
+            <!-- Inject Button -->
+            <button id="inject-btn" class="action-btn secondary">
+                <span class="btn-title">INJECT</span>
+            </button>
+        </div>
+
+        <!-- Preview Area -->
+        <div id="preview-area" class="preview-panel" style="display: none;">
+            <div class="preview-header">
+                <span>Checkpoint Segments</span>
+                <div class="preview-actions">
+                    <button id="clear-all-btn" class="icon-btn" title="Clear All">×</button>
+                </div>
+            </div>
+            <div id="segments-container" class="segments-container">
+                <!-- Segment cards will be added here -->
+            </div>
+            <div class="checkpoint-footer">
+                <span id="checkpoint-stats">0 segments, 0 characters</span>
+            </div>
+        </div>
+
+        <!-- Message Area -->
+        <div id="message-area" class="message-area" style="display: none;"></div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <span class="footer-text">Built by <a href="https://x.com/LumiHelia" target="_blank" class="footer-link">Helia (@LumiHelia)</a></span>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>

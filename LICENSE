@@ -1,0 +1,32 @@
+LumiFlow - AI Context Manager
+Copyright (C) 2026 Helia (@LumiHelia)
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+---
+
+ADDITIONAL TERMS (Section 7):
+
+If you modify this Program and make it available to others (including 
+through a network), you must:
+1. Make the complete source code publicly available
+2. Use the same AGPLv3 license
+3. Preserve this copyright notice
+
+Closed-source forks are strictly prohibited.
+
+---
+
+For the full text of AGPLv3, visit:
+https://www.gnu.org/licenses/agpl-3.0.html
