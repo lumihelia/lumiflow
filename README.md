@@ -3,7 +3,7 @@
 **AI Context Manager** - Migrate conversations across AI platforms without losing your mind.
 
 <p align="center">
-  <img src="icon128.png" alt="LumiFlow" width="128" height="128">
+  <img src="icons/icon128.png" alt="LumiFlow" width="128" height="128">
 </p>
 
 <p align="center">
@@ -78,7 +78,7 @@ Instead of dumping 10,000 words, it:
 
 1. **Clone the repo**
    ```bash
-   git clone https://github.com/yourusername/lumiflow.git
+   git clone https://github.com/lumihelia/lumiflow.git
    cd lumiflow
    ```
 

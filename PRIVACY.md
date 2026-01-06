@@ -49,6 +49,17 @@ LumiFlow requests the following Chrome permissions:
 
 **None of these permissions allow us to access data outside the AI platforms you actively use.**
 
+### Host Permissions Details
+
+| Domain | Purpose |
+|--------|---------|
+| `chatgpt.com`, `chat.openai.com` | Extract conversations from ChatGPT |
+| `claude.ai` | Extract conversations from Claude |
+| `gemini.google.com` | Extract conversations from Gemini |
+| `api.anthropic.com` | Send compression requests (user's API key) |
+| `api.openai.com` | Send compression requests (user's API key) |
+| `generativelanguage.googleapis.com` | Send compression requests (user's API key) |
+
 ## No Tracking
 
 LumiFlow does **not** include:
