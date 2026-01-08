@@ -250,7 +250,7 @@ AGPLv3 prevents this. If you use our code, the community benefits.
 
 Built with:
 - Chrome Extension APIs
-- Gemini 2.0 Flash / GPT-4 / Claude 3.5
+- Gemini 2.0 Flash / Gemini 3.0 pro / Claude Sonnet 4.5
 - Lots of coffee ☕
 
 Inspired by the frustration of losing context when switching AI platforms.
