@@ -1,6 +1,10 @@
-# LumiFlow
+# LumiFlow v2.3
 
 **AI Context Manager** - Migrate conversations across AI platforms without losing your mind.
+
+[![Version](https://img.shields.io/badge/version-2.3.0-blue.svg)](https://github.com/lumihelia/lumiflow/releases)
+[![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-brightgreen.svg)]()
+[![License](https://img.shields.io/badge/license-AGPLv3-purple.svg)](LICENSE)
 
 <p align="center">
   <img src="icons/icon128.png" alt="LumiFlow" width="128" height="128">
@@ -44,31 +48,24 @@ Instead of dumping 10,000 words, it:
 
 ## ✨ Features
 
-### 🎴 Segments UI
-- Each topic becomes a **card**
-- Drag to reorder
-- Edit individually
-- Delete what you don't need
+### 🆕 NEW in v2.3!
+- 📤 **Export as Markdown/JSON** - One-click backup of all segments
+- ⌨️ **Keyboard Shortcuts** - `Ctrl+Shift+C` to compress, `Ctrl+Shift+I` to inject
+- 🌙 **Dark Mode** - Auto-detects system preference
+- 📊 **Compression Stats** - See how much space you saved (e.g., "67% saved")
+- 🔐 **API Key Security Warnings** - First-time dialog with security tips
+- ⚡ **Chunked Processing** - No UI freeze on 1000+ message conversations
+- 🔍 **Platform Health Check** - Auto-validates Gemini/Claude/ChatGPT compatibility
 
-### 🤖 Smart Compression
-- API-powered compression (Gemini/GPT-4/Claude)
-- Preserves: goals, decisions, examples, failed attempts
-- Forgets: pleasantries, repetitive explanations, noise
-
-### 🔀 Cross-Platform
-- ChatGPT ✅
-- Claude ✅
-- Gemini ✅
-
-### 🔒 Privacy First
-- Everything runs locally
-- No tracking
-- No external servers (except your own API keys)
-
-### ♾️ No Limits
-- Unlimited compressions
-- Unlimited injections
-- Unlimited segments
+### 💎 Core Features
+- ⏱️ **Progress Countdown** - Real-time timer during AI compression
+- 💬 **User-Friendly Errors** - Clear guidance instead of technical codes
+- 🔄 **8-Second Undo** - Accidentally cleared segments? Undo within 8 seconds!
+- 🎴 **Segments UI** - Drag-and-drop cards for each topic
+- 🤖 **Smart Compression** - API-powered 10:1 compression
+- 🔀 **Cross-Platform** - ChatGPT, Claude, Gemini support
+- 🔒 **Privacy First** - 100% local storage, no tracking
+- ♾️ **No Limits** - Unlimited everything, forever free
 
 ---
 

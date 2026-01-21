@@ -1,9 +1,10 @@
 {
   "manifest_version": 3,
   "name": "LumiFlow",
-  "version": "2.1.2",
-  "description": "Never lose context when switching AI conversations. Auto-compress and inject context across ChatGPT, Claude, and Gemini.",
+  "version": "2.3.0",
+  "description": "Never lose context switching AI chats. Auto-compress & inject across ChatGPT, Claude, Gemini. Local storage only.",
   "author": "Helia Hon",
+  "homepage_url": "https://github.com/lumihelia/lumiflow",
   "permissions": [
     "storage",
     "activeTab",
@@ -46,5 +47,30 @@
       "run_at": "document_idle",
       "all_frames": false
     }
-  ]
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
+  "commands": {
+    "compress": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+C",
+        "mac": "Command+Shift+C"
+      },
+      "description": "Compress current conversation"
+    },
+    "inject": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+I",
+        "mac": "Command+Shift+I"
+      },
+      "description": "Inject checkpoint into chat"
+    },
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+L",
+        "mac": "Command+Shift+L"
+      }
+    }
+  }
 }

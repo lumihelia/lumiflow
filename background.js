@@ -6,6 +6,24 @@
 
 console.log('LumiFlow: Service Worker started');
 
+// 🆕 Handle keyboard shortcuts
+chrome.commands.onCommand.addListener((command) => {
+    console.log('[LumiFlow] Command received:', command);
+
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]) {
+            chrome.tabs.sendMessage(tabs[0].id, {
+                action: command === 'compress' ? 'auto_compress' : 'keyboard_inject',
+                autoSend: command === 'compress'
+            }, (response) => {
+                if (chrome.runtime.lastError) {
+                    console.error('[LumiFlow] Command error:', chrome.runtime.lastError);
+                }
+            });
+        }
+    });
+});
+
 // Listen for messages from popup.js
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'callAPI') {

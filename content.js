@@ -5,7 +5,36 @@
 // (controlled by manifest.json content_scripts.matches)
 // ===================================
 
-console.log("LumiFlow v2.1: Content script loaded on", window.location.hostname);
+console.log("LumiFlow v2.3: Content script loaded on", window.location.hostname);
+
+// 🆕 Platform health check on load
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', validatePlatformSupport);
+} else {
+    validatePlatformSupport();
+}
+
+function validatePlatformSupport() {
+    const platform = detectPlatform();
+    const inputField = findInputField();
+    const sendButton = findSendButton();
+
+    console.log('[LumiFlow] Platform health check:', {
+        platform,
+        hasInput: !!inputField,
+        hasSendButton: !!sendButton
+    });
+
+    if (!inputField || !sendButton) {
+        console.warn('[LumiFlow] ⚠️ Platform UI may have changed. Some features might not work.');
+        console.warn('[LumiFlow] Missing:', {
+            input: !inputField,
+            sendButton: !sendButton
+        });
+    } else {
+        console.log('[LumiFlow] ✅ Platform support validated');
+    }
+}
 
 // ========================================
 // DOMAIN PROTECTION (双重防护)
@@ -187,7 +216,45 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     handleGetConversation(sendResponse);
     return true;
   }
+
+  if (request.action === "keyboard_inject") {
+    handleKeyboardInject(sendResponse);
+    return true;
+  }
 });
+
+// 🆕 Handle keyboard shortcut for inject
+async function handleKeyboardInject(sendResponse) {
+  try {
+    // Get last checkpoint from storage
+    const result = await chrome.storage.local.get(['segments']);
+    const segments = result.segments || [];
+
+    if (segments.length === 0) {
+      console.log('[LumiFlow] No segments to inject');
+      sendResponse({ status: 'error', message: 'No checkpoints available' });
+      return;
+    }
+
+    // Combine all segments
+    const text = segments
+      .map(s => s.content.trim())
+      .filter(content => content.length > 0)
+      .join('\n\n');
+
+    // Inject into input field
+    const inputField = findInputField();
+    if (!inputField) {
+      sendResponse({ status: 'error', message: 'Input field not found' });
+      return;
+    }
+
+    injectTextIntoField(inputField, text);
+    sendResponse({ status: 'success', message: 'Context injected via keyboard shortcut' });
+  } catch (error) {
+    sendResponse({ status: 'error', message: error.message });
+  }
+}
 
 // ========================================
 // AUTO COMPRESS HANDLER
@@ -516,26 +583,27 @@ function extractClaudeConversation() {
       } else if (hasClaudeFont) {
         role = 'model';
       } else {
-        // Enhanced fallback checks
-        const html = container.innerHTML.toLowerCase();
+        // Enhanced fallback checks using safer methods
         const text = container.textContent || '';
+        const className = container.className.toLowerCase();
 
-        // Check for user indicators
-        if (html.includes('user avatar') ||
-          html.includes('text-user-message') ||
-          html.includes('role="user"') ||
+        // Check for user indicators using safer alternatives
+        if (className.includes('user') ||
+          className.includes('text-user-message') ||
+          container.getAttribute('role') === 'user' ||
           container.querySelector('[data-role="user"]')) {
           role = 'user';
         }
         // Check for claude indicators
-        else if (html.includes('claude avatar') ||
-          html.includes('text-claude-message') ||
-          html.includes('role="assistant"') ||
+        else if (className.includes('claude') ||
+          className.includes('assistant') ||
+          className.includes('text-claude-message') ||
+          container.getAttribute('role') === 'assistant' ||
           container.querySelector('[data-role="assistant"]')) {
           role = 'model';
         }
         // Pattern-based fallback: User messages tend to be shorter
-        else if (text.length < 500 && !html.includes('<code')) {
+        else if (text.length < 500 && !container.querySelector('code')) {
           role = 'user';
         } else {
           role = 'model';
@@ -610,7 +678,6 @@ function extractGeminiConversation() {
   // Filter out UI elements by checking content characteristics
   const validMessages = Array.from(allMessages).filter(el => {
     const text = el.textContent || '';
-    const html = el.innerHTML;
 
     // Exclude if it's clearly UI chrome:
     // - Too short (buttons/labels are usually < 50 chars)

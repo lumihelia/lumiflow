@@ -614,3 +614,89 @@ header {
 .mb-2 {
     margin-bottom: 8px;
 }
+
+/* ========================================
+   DARK MODE SUPPORT
+   ======================================== */
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        /* Dark Mode Colors */
+        --bg-color: #1a1625;
+        --card-bg: #251f35;
+        --primary: #8b7eb8;
+        --accent: #d4a895;
+        --text-color: #e8e6ed;
+        --text-muted: #a8a4b3;
+        --border-color: #3d3551;
+        --hover-bg: #2d2540;
+        --success: #7ec89a;
+        --error: #e87871;
+        --warning: #f0bd6f;
+    }
+
+    /* Adjust specific elements for dark mode */
+    .neon-text {
+        text-shadow: 0 0 10px rgba(139, 126, 184, 0.5);
+    }
+
+    .action-btn {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .action-btn:hover {
+        box-shadow: 0 4px 12px rgba(139, 126, 184, 0.3);
+    }
+
+    .segment {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+    }
+
+    .message-area {
+        background: rgba(139, 126, 184, 0.15);
+        border: 1px solid rgba(139, 126, 184, 0.3);
+    }
+
+    .message-area.error {
+        background: rgba(232, 120, 113, 0.15);
+        border-color: rgba(232, 120, 113, 0.3);
+    }
+
+    .message-area.warning {
+        background: rgba(240, 189, 111, 0.15);
+        border-color: rgba(240, 189, 111, 0.3);
+    }
+
+    .message-area.success {
+        background: rgba(126, 200, 154, 0.15);
+        border-color: rgba(126, 200, 154, 0.3);
+    }
+
+    /* Input fields in dark mode */
+    .text-input,
+    .select-input {
+        background: var(--bg-color);
+        border-color: var(--border-color);
+        color: var(--text-color);
+    }
+
+    .text-input:focus,
+    .select-input:focus {
+        border-color: var(--primary);
+        background: var(--card-bg);
+    }
+
+    /* Scrollbar dark mode */
+    ::-webkit-scrollbar-track {
+        background: var(--bg-color);
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--primary);
+    }
+}

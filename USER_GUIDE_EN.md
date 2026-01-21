@@ -508,6 +508,67 @@ You now know all of LumiFlow's features.
 
 ---
 
-**Version**: v2.1  
-**Last Updated**: 2026-01-04  
+## 🆕 What's New in v2.3.0
+
+### 1. **Export Feature** 📤
+- Export as Markdown (.md files)
+- Export as JSON (with metadata)
+- Automatic timestamped filenames
+- One-click download backup
+
+**How to use**:
+- Click the 📄 icon in preview area header to export as Markdown
+- Click the 📋 icon to export as JSON
+
+### 2. **Keyboard Shortcuts** ⌨️
+- `Ctrl+Shift+C` (Mac: `Cmd+Shift+C`) - Quick compress
+- `Ctrl+Shift+I` (Mac: `Cmd+Shift+I`) - Quick inject
+- `Ctrl+Shift+L` (Mac: `Cmd+Shift+L`) - Open popup
+- Works directly from AI chat pages
+
+### 3. **Dark Mode** 🌙
+- Auto-detects system preference
+- Beautiful deep purple theme
+- Enhanced night-time experience
+- Full support across all UI elements
+
+### 4. **Compression Statistics** 📊
+- Shows compression savings: "2 segments, 1,245 chars • 67% saved"
+- Tracks original vs compressed length
+- Displayed in stats footer
+
+### 5. **Progress Countdown** ⏱️
+- Real-time countdown during Auto Compress
+- "Waiting for AI response... (45s remaining)"
+- 60-second live updates
+
+### 6. **User-Friendly Errors** 💬
+- Clear guidance for 13 common errors
+- No technical jargon
+- Actionable solution suggestions
+
+### 7. **Undo Function** 🔄
+- 8-second undo window after Clear All
+- Prevents accidental data loss
+- One-click restore all segments
+
+### 8. **API Key Security Warning** 🔐
+- Security tips on first-time save
+- Reminds about spending limits
+- Emphasizes local-only storage
+
+### 9. **Chunked Processing** ⚡
+- Prevents UI freeze on long conversations in Copy All
+- Shows progress: "Processing... 150/300 messages"
+- Processes in 50-message chunks
+
+### 10. **Platform Health Check** 🔍
+- Auto-validates input field and send button
+- Console warnings if platform UI changed
+- Helps debug compatibility issues
+
+---
+
+**Version**: v2.3.0
+**Last Updated**: 2026-01-21
 **License**: AGPLv3

@@ -22,6 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const checkpointStats = document.getElementById('checkpoint-stats');
     const clearAllBtn = document.getElementById('clear-all-btn');
     const copyAllBtn = document.getElementById('copy-all-btn');
+    const exportMdBtn = document.getElementById('export-md-btn');
+    const exportJsonBtn = document.getElementById('export-json-btn');
 
     // Settings
     const settingsBtn = document.getElementById('settings-btn');
@@ -31,6 +33,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let segments = []; // Array of segment objects
     let draggedSegment = null;
     let isAutoMode = true;
+
+    // 🆕 Undo functionality
+    let deletedSegmentsBackup = null;
+    let undoTimeout = null;
 
     // Initialize
     init();
@@ -146,8 +152,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Call API to compress
                 const checkpoint = await compressTextWithAPI(conversationText, apiSettings);
 
-                // Add as new segment
-                addSegment(checkpoint, response.platform);
+                // 🆕 Add as new segment with original length for compression stats
+                const segment = {
+                    id: Date.now() + Math.random(),
+                    content: checkpoint,
+                    originalLength: conversationText.length,  // Track original length
+                    platform: response.platform,
+                    timestamp: new Date().toISOString(),
+                    collapsed: checkpoint.length > 200
+                };
+
+                segments.push(segment);
+                renderSegments();
+                updateCheckpointStats();
+                saveSegments();
 
                 showMessage(`Checkpoint created via ${apiSettings.provider.toUpperCase()} API!`);
                 autoBtn.disabled = false;
@@ -161,22 +179,45 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function compressInChat(tab) {
+        // 🆕 Start countdown timer
+        let countdown = 60; // seconds
+        let countdownInterval = null;
+
+        const updateCountdown = () => {
+            if (countdown > 0) {
+                showMessage(`Waiting for AI response... (${countdown}s remaining)`, "info");
+                countdown--;
+            } else {
+                clearInterval(countdownInterval);
+                showMessage("Still waiting... AI is taking longer than expected", "info");
+            }
+        };
+
+        // Start countdown immediately
+        updateCountdown();
+        countdownInterval = setInterval(updateCountdown, 1000);
+
         // Send auto-compress command (original method - injects prompt into chat)
         chrome.tabs.sendMessage(tab.id, {
             action: "auto_compress",
             autoSend: true
         }, async (response) => {
+            // Clear countdown timer
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+
             // ⚠️ Note: response callback may timeout for long waits
             // Always check storage as fallback
-            
+
             console.log('[DEBUG] Response received:', response);
-            
+
             if (chrome.runtime.lastError) {
                 console.log('[DEBUG] Runtime error:', chrome.runtime.lastError.message);
             }
-            
+
             let checkpointAdded = false;
-            
+
             // Try to use response if available
             if (response && response.status === 'success' && response.checkpoint) {
                 console.log('[DEBUG] Got checkpoint from response, length:', response.checkpoint.length);
@@ -188,24 +229,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 autoBtn.disabled = false;
                 return;
             }
-            
+
             // 🔥 CRITICAL FIX: Always check storage after 3 seconds
             // This handles cases where sendResponse is too slow
             if (!checkpointAdded) {
                 console.log('[DEBUG] Waiting 3s then checking storage fallback...');
                 await sleep(3000);  // Give content.js time to save
-                
+
                 const storageSuccess = await checkStorageFallback();
                 if (storageSuccess) {
                     checkpointAdded = true;
                 }
             }
-            
+
             // Final fallback: show manual absorb message
             if (!checkpointAdded) {
                 showMessage("Timeout. Please select AI response and use Manual Absorb.", "info");
             }
-            
+
             autoBtn.disabled = false;
         });
     }
@@ -643,6 +684,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            // 🆕 Security warning for first-time API key save
+            if (key && apiEnabled.checked) {
+                const existingSettings = await getFromStorage('apiSettings');
+                const isFirstTime = !existingSettings || !existingSettings.key;
+
+                if (isFirstTime) {
+                    const confirmed = confirm(
+                        '🔐 API Key Security Tips:\n\n' +
+                        '• Your key is stored locally (never sent to our servers)\n' +
+                        '• Use API keys with spending limits\n' +
+                        '• Regularly rotate your keys\n' +
+                        '• Never use production keys\n\n' +
+                        'Continue saving this API key?'
+                    );
+
+                    if (!confirmed) {
+                        showMessage("API key not saved", "info");
+                        return;
+                    }
+                }
+            }
+
             await saveToStorage('apiSettings', {
                 enabled: apiEnabled ? apiEnabled.checked : false,
                 provider: provider,
@@ -702,19 +765,34 @@ document.addEventListener('DOMContentLoaded', () => {
                         return;
                     }
 
-                    // 2. Format conversation with clean spacing
+                    // 2. 🆕 Format conversation with chunked processing (prevent UI freeze)
+                    let markdownText = '';
+                    const CHUNK_SIZE = 50;
 
-                    const markdownText = conversation.map(m => {
-                        const role = m.role === 'user' ? 'User said:' : 'AI said:';
-                        const cleanContent = sanitizeContent(m.content);
+                    for (let i = 0; i < conversation.length; i += CHUNK_SIZE) {
+                        const chunk = conversation.slice(i, i + CHUNK_SIZE);
+                        const formatted = chunk.map(m => {
+                            const role = m.role === 'user' ? 'User said:' : 'AI said:';
+                            const cleanContent = sanitizeContent(m.content);
 
-                        if (!cleanContent) return null;
+                            if (!cleanContent) return null;
 
-                        // Single newline: role directly followed by content (no gap)
-                        return `${role}\n${cleanContent}`;
-                    })
-                        .filter(item => item !== null)
-                        .join('\n\n'); // Double newline between messages (1 blank line)
+                            return `${role}\n${cleanContent}`;
+                        })
+                            .filter(item => item !== null)
+                            .join('\n\n');
+
+                        markdownText += formatted + '\n\n';
+
+                        // Update progress for long conversations
+                        if (conversation.length > 100) {
+                            const progress = Math.min(i + CHUNK_SIZE, conversation.length);
+                            showMessage(`Processing... ${progress}/${conversation.length} messages`, 'info');
+                        }
+
+                        // Let browser breathe
+                        await sleep(0);
+                    }
 
 
                     // 3. Segments Replacement Confirmation
@@ -760,6 +838,75 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ========================================
+    // EXPORT FEATURES
+    // ========================================
+
+    // 🆕 Export as Markdown
+    if (exportMdBtn) {
+        exportMdBtn.addEventListener('click', () => {
+            if (segments.length === 0) {
+                showMessage("No segments to export", "info");
+                return;
+            }
+
+            const markdown = getCombinedCheckpoint();
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+            const filename = `lumiflow_checkpoint_${timestamp}.md`;
+
+            downloadFile(markdown, filename, 'text/markdown');
+            showMessage(`Exported as ${filename}`, "success");
+        });
+    }
+
+    // 🆕 Export as JSON
+    if (exportJsonBtn) {
+        exportJsonBtn.addEventListener('click', () => {
+            if (segments.length === 0) {
+                showMessage("No segments to export", "info");
+                return;
+            }
+
+            const exportData = {
+                version: "2.3.0",
+                exportedAt: new Date().toISOString(),
+                segmentCount: segments.length,
+                totalChars: segments.reduce((sum, s) => sum + s.content.length, 0),
+                segments: segments.map(s => ({
+                    content: s.content,
+                    platform: s.platform,
+                    timestamp: s.timestamp
+                }))
+            };
+
+            const json = JSON.stringify(exportData, null, 2);
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+            const filename = `lumiflow_checkpoint_${timestamp}.json`;
+
+            downloadFile(json, filename, 'application/json');
+            showMessage(`Exported as ${filename}`, "success");
+        });
+    }
+
+    // 🆕 Helper function to download files
+    function downloadFile(content, filename, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+
+        // Cleanup
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 100);
+    }
+
+    // ========================================
     // CLEAR ALL SEGMENTS
     // ========================================
 
@@ -775,23 +922,75 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                const confirmed = confirm(`Clear all ${segments.length} segments? This cannot be undone.`);
+                const confirmed = confirm(`Clear all ${segments.length} segments?`);
 
                 if (!confirmed) {
                     return;
                 }
 
+                // 🆕 Backup segments for undo
+                deletedSegmentsBackup = [...segments];
                 segments = [];
+
                 renderSegments();
                 updateCheckpointStats();
                 await saveSegments();
-                showMessage("All segments cleared");
+
+                // 🆕 Show undo option
+                messageArea.innerHTML = `
+                    All segments cleared.
+                    <button id="undo-clear-btn" style="
+                        margin-left: 8px;
+                        padding: 4px 12px;
+                        background: var(--accent-color);
+                        color: white;
+                        border: none;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-size: 0.9rem;
+                    ">UNDO</button>
+                `;
+                messageArea.className = 'message-area warning';
+                messageArea.style.display = 'block';
+
+                // Clear undo timeout if exists
+                if (undoTimeout) {
+                    clearTimeout(undoTimeout);
+                }
+
+                // Set 8 second timeout for undo
+                undoTimeout = setTimeout(() => {
+                    deletedSegmentsBackup = null;
+                    messageArea.style.display = 'none';
+                }, 8000);
+
             } catch (err) {
                 console.error('[ERROR] Clear All click handler:', err);
                 showMessage("Failed to clear segments", "error");
             }
         });
     }
+
+    // 🆕 Undo button event listener (delegated)
+    document.addEventListener('click', async (e) => {
+        if (e.target.id === 'undo-clear-btn' && deletedSegmentsBackup) {
+            // Clear timeout
+            if (undoTimeout) {
+                clearTimeout(undoTimeout);
+                undoTimeout = null;
+            }
+
+            // Restore segments
+            segments = deletedSegmentsBackup;
+            deletedSegmentsBackup = null;
+
+            renderSegments();
+            updateCheckpointStats();
+            await saveSegments();
+
+            showMessage(`${segments.length} segments restored!`, 'success');
+        }
+    });
 
     // ========================================
     // API COMPRESSION FUNCTIONS
@@ -960,17 +1159,29 @@ ${text}`;
 
         const displayName = platformNames[platform] || 'UNKNOWN';
 
-        statsArea.innerHTML = `
-            <div class="stat-badge">
-                <strong>${displayName}</strong>
-            </div>
-            <div class="stat-badge">
-                ${stats.totalMessages} messages
-            </div>
-            <div class="stat-badge">
-                ~${stats.estimatedTokens.toLocaleString()} tokens
-            </div>
-        `;
+        // Clear existing content safely
+        while (statsArea.firstChild) {
+            statsArea.removeChild(statsArea.firstChild);
+        }
+
+        // Create elements programmatically (safer than innerHTML)
+        const platformBadge = document.createElement('div');
+        platformBadge.className = 'stat-badge';
+        const platformStrong = document.createElement('strong');
+        platformStrong.textContent = displayName;
+        platformBadge.appendChild(platformStrong);
+
+        const messagesBadge = document.createElement('div');
+        messagesBadge.className = 'stat-badge';
+        messagesBadge.textContent = `${stats.totalMessages} messages`;
+
+        const tokensBadge = document.createElement('div');
+        tokensBadge.className = 'stat-badge';
+        tokensBadge.textContent = `~${stats.estimatedTokens.toLocaleString()} tokens`;
+
+        statsArea.appendChild(platformBadge);
+        statsArea.appendChild(messagesBadge);
+        statsArea.appendChild(tokensBadge);
         statsArea.style.display = 'flex';
     }
 
@@ -1071,18 +1282,18 @@ ${text}`;
 
         const dragBtn = document.createElement('button');
         dragBtn.className = 'segment-btn drag';
-        dragBtn.innerHTML = '⋮⋮';
+        dragBtn.textContent = '⋮⋮';
         dragBtn.title = 'Drag to reorder';
         dragBtn.draggable = true;
 
         const editBtn = document.createElement('button');
         editBtn.className = 'segment-btn edit';
-        editBtn.innerHTML = '✎';
+        editBtn.textContent = '✎';
         editBtn.title = 'Edit';
 
         const deleteBtn = document.createElement('button');
         deleteBtn.className = 'segment-btn delete';
-        deleteBtn.innerHTML = '×';
+        deleteBtn.textContent = '×';
         deleteBtn.title = 'Delete';
 
         actions.appendChild(dragBtn);
@@ -1124,12 +1335,12 @@ ${text}`;
                 }
                 contentEl.contentEditable = 'false';
                 segmentEl.classList.remove('editing');
-                editBtn.innerHTML = '✎';
+                editBtn.textContent = '✎';
             } else {
                 contentEl.contentEditable = 'true';
                 contentEl.focus();
                 segmentEl.classList.add('editing');
-                editBtn.innerHTML = '✓';
+                editBtn.textContent = '✓';
             }
         });
 
@@ -1170,7 +1381,23 @@ ${text}`;
 
     function updateCheckpointStats() {
         const totalChars = segments.reduce((sum, s) => sum + s.content.length, 0);
-        checkpointStats.textContent = `${segments.length} segment${segments.length !== 1 ? 's' : ''}, ${totalChars} characters`;
+
+        // 🆕 Calculate compression rate if we have original data
+        let statsText = `${segments.length} segment${segments.length !== 1 ? 's' : ''}, ${totalChars.toLocaleString()} chars`;
+
+        // Check if any segment has compression metadata
+        const compressedSegments = segments.filter(s => s.originalLength && s.originalLength > s.content.length);
+        if (compressedSegments.length > 0) {
+            const totalOriginal = compressedSegments.reduce((sum, s) => sum + (s.originalLength || s.content.length), 0);
+            const totalCompressed = compressedSegments.reduce((sum, s) => sum + s.content.length, 0);
+            const compressionRate = Math.round((1 - totalCompressed / totalOriginal) * 100);
+
+            if (compressionRate > 0) {
+                statsText += ` • ${compressionRate}% saved`;
+            }
+        }
+
+        checkpointStats.textContent = statsText;
     }
 
     async function saveSegments() {
@@ -1238,7 +1465,36 @@ ${text}`;
 
     function handleError(err, context) {
         console.error(`${context} Error:`, err);
-        showMessage(`Error: ${err.message}`, "error");
+
+        // 🆕 User-friendly error messages
+        const userFriendlyErrors = {
+            'Network request failed': 'Network error. Please check your internet connection.',
+            'Failed to fetch': 'Cannot connect to API. Check your network or API key.',
+            'API key': 'Invalid API key. Please check Settings ⚙️',
+            'api key': 'Invalid API key. Please check Settings ⚙️',
+            'Timeout': 'Request timed out. The AI took too long to respond.',
+            'timeout': 'Request timed out. The AI took too long to respond.',
+            'not found': 'Could not find input field. Try refreshing the page.',
+            'Please refresh': 'Extension needs page refresh. Press F5 or ⌘R.',
+            'blocked': 'Request blocked. Check if API is accessible in your region.',
+            '401': 'Authentication failed. Check your API key in Settings.',
+            '403': 'Access forbidden. Your API key may lack permissions.',
+            '429': 'Rate limit exceeded. Please wait a moment and try again.',
+            '500': 'API server error. Please try again later.',
+            'quota': 'API quota exceeded. Check your API usage limits.'
+        };
+
+        let message = err.message || 'Unknown error';
+
+        // Find matching user-friendly message
+        for (const [key, friendly] of Object.entries(userFriendlyErrors)) {
+            if (message.toLowerCase().includes(key.toLowerCase())) {
+                message = friendly;
+                break;
+            }
+        }
+
+        showMessage(`${context} failed: ${message}`, "error");
     }
 
     // ========================================
