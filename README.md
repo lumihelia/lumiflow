@@ -1,8 +1,8 @@
-# LumiFlow v2.3
+# LumiFlow v2.3.1
 
 **AI Context Manager** - Migrate conversations across AI platforms without losing your mind.
 
-[![Version](https://img.shields.io/badge/version-2.3.0-blue.svg)](https://github.com/lumihelia/lumiflow/releases)
+[![Version](https://img.shields.io/badge/version-2.3.1-blue.svg)](https://github.com/lumihelia/lumiflow/releases)
 [![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-brightgreen.svg)]()
 [![License](https://img.shields.io/badge/license-AGPLv3-purple.svg)](LICENSE)
 
@@ -48,7 +48,13 @@ Instead of dumping 10,000 words, it:
 
 ## ✨ Features
 
-### 🆕 NEW in v2.3!
+### 🆕 NEW in v2.3.1!
+- ✨ **Improved COPY ALL** - Now appends segments automatically (no confirmation needed)
+- 🐛 **Bug Fixes** - Fixed critical PLATFORMS and sleep() errors
+- 📝 **Enhanced Logging** - Better debugging with detailed console messages
+- 🔍 **Troubleshooting Guide** - New TROUBLESHOOTING.md with solutions
+
+### 🎉 Features from v2.3
 - 📤 **Export as Markdown/JSON** - One-click backup of all segments
 - ⌨️ **Keyboard Shortcuts** - `Ctrl+Shift+C` to compress, `Ctrl+Shift+I` to inject
 - 🌙 **Dark Mode** - Auto-detects system preference

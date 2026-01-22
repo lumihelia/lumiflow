@@ -54,28 +54,43 @@ async function handleAPICall(request) {
 // ========================================
 
 async function callGeminiAPI(prompt, apiKey) {
+    const requestBody = JSON.stringify({
+        contents: [{
+            parts: [{ text: prompt }]
+        }]
+    });
+
+    console.log('[GEMINI] Request body length:', requestBody.length, 'chars');
+    console.log('[GEMINI] Prompt length:', prompt.length, 'chars');
+
     const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
         {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [{ text: prompt }]
-                }]
-            })
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': requestBody.length.toString()
+            },
+            body: requestBody
         }
     );
 
     if (!response.ok) {
+        console.error('[GEMINI] API request failed:', response.status, response.statusText);
         const errorText = await response.text();
+        console.error('[GEMINI] Error response (first 500 chars):', errorText.substring(0, 500));
+
         let errorData;
         try {
             errorData = JSON.parse(errorText);
+            throw new Error(errorData.error?.message || `Gemini API error (${response.status})`);
         } catch (e) {
+            // Not JSON, probably HTML error page
+            if (errorText.includes('<!DOCTYPE') || errorText.includes('<html')) {
+                throw new Error(`Gemini API returned HTML error page (${response.status}). Check API key or network.`);
+            }
             throw new Error(`Gemini API failed (${response.status}): ${errorText.substring(0, 200)}`);
         }
-        throw new Error(errorData.error?.message || `Gemini API failed (${response.status})`);
     }
 
     const data = await response.json();

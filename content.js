@@ -5,36 +5,7 @@
 // (controlled by manifest.json content_scripts.matches)
 // ===================================
 
-console.log("LumiFlow v2.3: Content script loaded on", window.location.hostname);
-
-// 🆕 Platform health check on load
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', validatePlatformSupport);
-} else {
-    validatePlatformSupport();
-}
-
-function validatePlatformSupport() {
-    const platform = detectPlatform();
-    const inputField = findInputField();
-    const sendButton = findSendButton();
-
-    console.log('[LumiFlow] Platform health check:', {
-        platform,
-        hasInput: !!inputField,
-        hasSendButton: !!sendButton
-    });
-
-    if (!inputField || !sendButton) {
-        console.warn('[LumiFlow] ⚠️ Platform UI may have changed. Some features might not work.');
-        console.warn('[LumiFlow] Missing:', {
-            input: !inputField,
-            sendButton: !sendButton
-        });
-    } else {
-        console.log('[LumiFlow] ✅ Platform support validated');
-    }
-}
+console.log("LumiFlow v2.3.1: Content script loaded on", window.location.hostname);
 
 // ========================================
 // DOMAIN PROTECTION (双重防护)
@@ -59,7 +30,7 @@ if (!isAllowedDomain) {
 }
 
 // ========================================
-// PLATFORMS
+// PLATFORMS (MUST BE DEFINED BEFORE USE!)
 // ========================================
 
 const PLATFORMS = {
@@ -68,6 +39,39 @@ const PLATFORMS = {
   GEMINI: 'gemini',
   UNKNOWN: 'unknown'
 };
+
+// ========================================
+// PLATFORM HEALTH CHECK ON LOAD
+// ========================================
+
+// 🆕 Platform health check on load
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', validatePlatformSupport);
+} else {
+    validatePlatformSupport();
+}
+
+function validatePlatformSupport() {
+    const platform = detectPlatform();
+    const inputField = findInputField();
+    const sendButton = findSendButton();
+
+    console.log('[LumiFlow] Platform health check:', {
+        platform,
+        hasInput: !!inputField,
+        hasSendButton: !!sendButton
+    });
+
+    if (!inputField || !sendButton) {
+        console.log('[LumiFlow] ℹ️ Some UI elements not detected yet (page may still be loading)');
+        console.log('[LumiFlow] Missing:', {
+            input: !inputField,
+            sendButton: !sendButton
+        });
+    } else {
+        console.log('[LumiFlow] ✅ Platform support validated');
+    }
+}
 
 // ========================================
 // COMPRESSION PROMPT
@@ -466,7 +470,9 @@ function handleGetStats(sendResponse) {
 
 async function handleGetConversation(sendResponse) {
   try {
+    console.log('[GET_CONVERSATION] Starting...');
     const platform = detectPlatform();
+    console.log('[GET_CONVERSATION] Platform detected:', platform);
 
     // Gemini 使用虚拟滚动/懒加载，需要先滚动到顶部加载所有消息
     if (platform === PLATFORMS.GEMINI) {
@@ -475,6 +481,20 @@ async function handleGetConversation(sendResponse) {
     }
 
     const messages = extractConversation();
+    console.log('[GET_CONVERSATION] Extracted messages:', messages.length);
+
+    if (messages.length === 0) {
+      console.warn('[GET_CONVERSATION] ⚠️ No messages found! Possible causes:');
+      console.warn('  1. Platform UI changed (selectors outdated)');
+      console.warn('  2. Not on a conversation page');
+      console.warn('  3. Page not fully loaded');
+
+      // Try diagnostic info
+      console.log('[GET_CONVERSATION] Diagnostic info:');
+      console.log('  - URL:', window.location.href);
+      console.log('  - Page title:', document.title);
+      console.log('  - Body text length:', document.body.innerText.length);
+    }
 
     sendResponse({
       status: 'success',
@@ -483,6 +503,7 @@ async function handleGetConversation(sendResponse) {
     });
 
   } catch (error) {
+    console.error('[GET_CONVERSATION] Error:', error);
     sendResponse({
       status: 'error',
       message: error.message
@@ -551,17 +572,48 @@ function detectPlatform() {
 
 function extractConversation() {
   const platform = detectPlatform();
+  console.log('[EXTRACT] Starting extraction for platform:', platform);
+
+  let messages = [];
 
   switch (platform) {
     case PLATFORMS.CLAUDE:
-      return extractClaudeConversation();
+      messages = extractClaudeConversation();
+      break;
     case PLATFORMS.CHATGPT:
-      return extractChatGPTConversation();
+      messages = extractChatGPTConversation();
+      break;
     case PLATFORMS.GEMINI:
-      return extractGeminiConversation();
+      messages = extractGeminiConversation();
+      break;
     default:
+      console.warn('[EXTRACT] Unknown platform, cannot extract');
       return [];
   }
+
+  console.log('[EXTRACT] Extracted', messages.length, 'messages');
+
+  if (messages.length === 0) {
+    console.warn('[EXTRACT] No messages extracted. Debugging info:');
+    console.warn('  - Platform:', platform);
+    console.warn('  - URL:', window.location.href);
+
+    // Platform-specific debugging
+    if (platform === PLATFORMS.CLAUDE) {
+      const containers = document.querySelectorAll('[data-test-render-count]');
+      console.warn('  - Claude: Found', containers.length, '[data-test-render-count] elements');
+    } else if (platform === PLATFORMS.CHATGPT) {
+      const msgs = document.querySelectorAll('[data-message-author-role]');
+      console.warn('  - ChatGPT: Found', msgs.length, '[data-message-author-role] elements');
+    } else if (platform === PLATFORMS.GEMINI) {
+      const main = document.querySelector('main');
+      console.warn('  - Gemini: Found main element:', !!main);
+      const allMessages = document.querySelectorAll('[class*="message"], [data-message-id]');
+      console.warn('  - Gemini: Found', allMessages.length, 'message candidates');
+    }
+  }
+
+  return messages;
 }
 
 function extractClaudeConversation() {

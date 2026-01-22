@@ -1,0 +1,38 @@
+v2.3.1: Critical bug fixes & COPY ALL improvements
+
+🐛 Bug Fixes:
+- Fix ReferenceError: PLATFORMS not defined (content.js initialization order)
+- Fix ReferenceError: sleep is not defined (added utility function to popup.js)
+
+✨ Features:
+- COPY ALL now auto-appends segments (removed confirmation dialog)
+- Enhanced success message with segment count display
+
+🔧 Improvements:
+- Added detailed console logging for debugging ([GET_CONVERSATION], [EXTRACT], [COPY_ALL])
+- Enhanced error messages in background.js Gemini API calls
+- Platform health check logging on page load
+
+📚 Documentation:
+- Added TROUBLESHOOTING.md with common issues and solutions
+- Added CHANGELOG_v2.3.1.md with detailed changes
+- Added RELEASE_NOTES_v2.3.1.md for GitHub release
+- Updated README.md to v2.3.1
+- Updated USER_GUIDE_CN.md with v2.3.1 features
+
+🧪 Testing:
+- Verified on Claude.ai, ChatGPT, Gemini
+- All features working correctly
+
+Files changed:
+- manifest.json (version bump to 2.3.1)
+- content.js (PLATFORMS order fix, enhanced logging, version update)
+- popup.js (sleep() function added, COPY ALL logic simplified, enhanced logging)
+- background.js (enhanced Gemini API logging and error handling)
+- README.md (version update, feature highlights)
+- USER_GUIDE_CN.md (v2.3.1 updates section)
+- CHANGELOG_v2.3.1.md (new)
+- RELEASE_NOTES_v2.3.1.md (new)
+- TROUBLESHOOTING.md (new)
+
+Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>

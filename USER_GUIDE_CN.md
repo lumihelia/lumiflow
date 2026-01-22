@@ -1,6 +1,34 @@
-# 📖 LumiFlow 使用说明
+# 📖 LumiFlow 使用说明 (v2.3.1)
 
 欢迎使用 LumiFlow！这份文档将帮你在 5 分钟内上手。
+
+## 🎉 v2.3.1 更新内容
+
+### ✨ COPY ALL 体验优化
+- **之前**：点击 COPY ALL 时，如果已有 segments 会弹窗询问是否替换
+- **现在**：直接追加新 segment，无需确认！
+
+**使用场景**：
+```
+场景 1：合并多个对话
+1. ChatGPT 对话 A → COPY ALL → Segment 1
+2. Claude 对话 B → COPY ALL → Segment 2
+3. Gemini 对话 C → COPY ALL → Segment 3
+4. 点击 INJECT → 三个对话合并注入！
+
+场景 2：增量备份
+1. 长对话进行到一半 → COPY ALL 保存
+2. 继续聊天...
+3. 再次 COPY ALL → 自动追加，不覆盖之前的内容
+```
+
+### 🐛 关键 Bug 修复
+- ✅ 修复 `PLATFORMS not defined` 错误（扩展无法加载）
+- ✅ 修复 `sleep is not defined` 错误（COPY ALL 失败）
+- ✅ 增强错误日志，方便诊断问题
+
+### 📚 新增文档
+- 🔍 **TROUBLESHOOTING.md** - 常见问题排查指南
 
 ---
 
