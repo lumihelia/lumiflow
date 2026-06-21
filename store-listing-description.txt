@@ -1,0 +1,36 @@
+LumiFlow - AI Context Manager
+
+Never lose context when switching AI conversations. LumiFlow treats your conversation as structured data, not raw text — and gives you two ways to carry it forward.
+
+Full Conversation
+Download the entire conversation as a TXT or Markdown file in one click. Every line is labeled by speaker (User / ChatGPT / Claude / Gemini), so the export is ready to read, archive, or paste somewhere else — no manual copying required.
+
+Checkpoint
+Compress what actually matters — goals, decisions, examples — into a structured checkpoint, then inject it into a new chat. The new conversation picks up exactly where you left off, instead of starting from zero or hitting the context window limit.
+
+How It Works
+1. Compress your conversation with AI (10:1 ratio), or manually select and absorb the parts that matter
+2. LumiFlow extracts goals, decisions, and examples into a checkpoint
+3. Inject the checkpoint into a new session
+4. The new AI continues with full context, not a blank slate
+
+Core Features
+- Cross-platform: ChatGPT, Claude, and Gemini
+- Direct export: full conversation as TXT or Markdown, speaker-labeled
+- Smart compression: AI-powered 10:1 summarization, or compress without an API key using your existing chat
+- Segments workspace: drag-and-drop cards to curate and reorder context before injecting
+- Keyboard shortcuts for compress and inject
+- No limits: unlimited everything, forever free
+
+Perfect For
+- Project planning and iterative development across multiple AI tools
+- Long research conversations that outgrow the context window
+- Critical context you can't afford to lose when starting a new chat
+
+Privacy
+- Everything runs locally, in your browser
+- No tracking, no analytics, no usage limits
+- API keys (if you use one) are stored locally only, never sent to our servers
+- Open source (MIT License) — audit the code yourself
+
+Built by @LumiHelia for the power user community.
