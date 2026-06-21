@@ -4,7 +4,7 @@
 
 [![Version](https://img.shields.io/badge/version-2.3.1-blue.svg)](https://github.com/lumihelia/lumiflow/releases)
 [![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-brightgreen.svg)]()
-[![License](https://img.shields.io/badge/license-AGPLv3-purple.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-purple.svg)](LICENSE)
 
 <p align="center">
   <img src="icons/icon128.png" alt="LumiFlow" width="128" height="128">
@@ -227,25 +227,11 @@ git push origin feature/your-feature
 
 ## ⚖️ License
 
-**AGPLv3** - Strictly enforced.
+**MIT** - permissive, open to commercial and closed-source use.
 
-We believe in the open exchange of intelligence.
-
-If you build upon LumiFlow's code or protocol, you **must**:
-1. ✅ Open source your modifications
-2. ✅ Use the same AGPLv3 license
-3. ✅ Preserve copyright notices
-
-**Closed-source forks are strictly prohibited.**
-
-### Why AGPLv3?
-
-We've seen too many open source projects get:
-- Stolen by companies
-- Wrapped in a paywall
-- Sold as "premium" features
-
-AGPLv3 prevents this. If you use our code, the community benefits.
+Use, modify, and redistribute LumiFlow's code freely, including in closed-source
+or commercial projects. The only requirement is preserving the copyright notice
+in [LICENSE](LICENSE).
 
 ---
 

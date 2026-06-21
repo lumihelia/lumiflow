@@ -571,4 +571,4 @@ You now know all of LumiFlow's features.
 
 **Version**: v2.3.0
 **Last Updated**: 2026-01-21
-**License**: AGPLv3
+**License**: MIT

@@ -71,7 +71,7 @@ LumiFlow does **not** include:
 
 ## Open Source Transparency
 
-LumiFlow is fully open source under AGPLv3.
+LumiFlow is fully open source under the MIT License.
 
 You can audit the entire codebase at:  
 **https://github.com/lumihelia/lumiflow**

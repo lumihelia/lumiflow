@@ -2,7 +2,7 @@
  * LumiFlow - AI Context Manager
  * Copyright (C) 2026 Helia (@LumiHelia)
  * 
- * Licensed under AGPLv3 - Closed-source forks prohibited.
+ * Licensed under the MIT License.
  * See LICENSE file for details.
  */
 

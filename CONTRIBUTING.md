@@ -131,12 +131,11 @@ If you have ideas to improve compression quality:
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under AGPLv3.
+By contributing, you agree that your contributions will be licensed under the MIT License.
 
 This means:
 - Your code will be open source
-- Others can use and modify it
-- But they must also open source their modifications
+- Others can use, modify, and redistribute it freely, including in closed-source projects
 
 ## Questions?
 
