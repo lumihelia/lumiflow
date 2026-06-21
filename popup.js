@@ -7,7 +7,7 @@
  */
 
 // ========================================
-// LumiFlow v2.1 - Popup Script
+// LumiFlow v2.4.0 - Popup Script
 // ========================================
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showMessage("Using API backend (won't pollute conversation)...", "info");
 
         // Get conversation from current tab
-        chrome.tabs.sendMessage(tab.id, {
+        sendTabMessageWithRetry(tab.id, {
             action: "get_conversation"
         }, async (response) => {
             console.log('[API_COMPRESS] Response received:', response);
@@ -219,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
         countdownInterval = setInterval(updateCountdown, 1000);
 
         // Send auto-compress command (original method - injects prompt into chat)
-        chrome.tabs.sendMessage(tab.id, {
+        sendTabMessageWithRetry(tab.id, {
             action: "auto_compress",
             autoSend: true
         }, async (response) => {
@@ -316,7 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('[DEBUG] Active tab:', tab?.id, tab?.url);
             if (!validateTab(tab)) return;
 
-            chrome.tabs.sendMessage(tab.id, {
+            sendTabMessageWithRetry(tab.id, {
                 action: "manual_absorb"
             }, async (response) => {
                 console.log('[DEBUG] Response received:', response);
@@ -428,7 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const tab = await getActiveTab();
             if (!validateTab(tab)) return;
 
-            chrome.tabs.sendMessage(tab.id, {
+            sendTabMessageWithRetry(tab.id, {
                 action: "inject",
                 text: checkpointText
             }, async (response) => {
@@ -816,7 +816,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const tab = await getActiveTab();
             if (!validateTab(tab)) return;
 
-            chrome.tabs.sendMessage(tab.id, {
+            sendTabMessageWithRetry(tab.id, {
                 action: "get_conversation"
             }, async (response) => {
                 console.log(`[DOWNLOAD_${format.toUpperCase()}] Response:`, response);
@@ -897,7 +897,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const exportData = {
-                version: "2.3.0",
+                version: "2.4.0",
                 exportedAt: new Date().toISOString(),
                 segmentCount: segments.length,
                 totalChars: segments.reduce((sum, s) => sum + s.content.length, 0),
@@ -1541,7 +1541,7 @@ ${text}`
             const tab = await getActiveTab();
             if (!tab || !validateTab(tab, true)) return;
 
-            chrome.tabs.sendMessage(tab.id, {
+            sendTabMessageWithRetry(tab.id, {
                 action: "get_stats"
             }, (response) => {
                 if (chrome.runtime.lastError || !response) return;
@@ -1833,6 +1833,32 @@ ${text}`
     async function getActiveTab() {
         const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
         return tabs[0];
+    }
+
+    // 页面刚刷新时，content script 可能还没注入完成，这时发消息会报
+    // "Could not establish connection. Receiving end does not exist."
+    // 这是瞬时的，稍等一下重试一次基本都能成功，不应该直接报错给用户。
+    function isTransientConnectionError(message) {
+        return !!message && (
+            message.includes('Receiving end does not exist') ||
+            message.includes('Could not establish connection')
+        );
+    }
+
+    function sendTabMessageWithRetry(tabId, message, callback, retriesLeft = 1) {
+        chrome.tabs.sendMessage(tabId, message, (response) => {
+            const lastError = chrome.runtime.lastError;
+
+            if (lastError && isTransientConnectionError(lastError.message) && retriesLeft > 0) {
+                console.log('[LumiFlow] Content script not ready yet, retrying in 800ms...');
+                setTimeout(() => {
+                    sendTabMessageWithRetry(tabId, message, callback, retriesLeft - 1);
+                }, 800);
+                return;
+            }
+
+            callback(response);
+        });
     }
 
     function validateTab(tab, silent = false) {
