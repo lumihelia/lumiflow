@@ -43,3 +43,7 @@ build/
 *~
 .Spotlight-V100
 .Trashes
+
+# Working notes, not for public repo
+memory.md
+store-listing-description.txt
