@@ -160,12 +160,29 @@ header {
 }
 
 /* ========================================
-   CONTROLS (4-Button Layout)
+   CONTROLS (Two Modes: Full Conversation / Checkpoint)
    ======================================== */
 
 .controls {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+}
+
+.controls-group-label {
+    display: block;
+    margin-bottom: 8px;
+    font-family: var(--font-sans);
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.controls-row {
     display: grid;
-    /* 4 buttons, 2x2: row 1 = export actions, row 2 = AI-loop actions */
     grid-template-columns: 1fr 1fr;
     gap: 8px;
     width: 100%;

@@ -76,30 +76,40 @@
 
         <!-- Action Buttons -->
         <div class="controls">
-            <!-- Download TXT Button -->
-            <button id="download-txt-btn" class="action-btn secondary">
-                <span class="btn-title">DOWNLOAD TXT</span>
-            </button>
+            <!-- Mode 1: take the whole conversation out, verbatim -->
+            <div class="controls-group">
+                <span class="controls-group-label">Full Conversation</span>
+                <div class="controls-row">
+                    <button id="download-txt-btn" class="action-btn secondary">
+                        <span class="btn-title">DOWNLOAD TXT</span>
+                    </button>
 
-            <!-- Download Markdown Button -->
-            <button id="download-md-btn" class="action-btn secondary">
-                <span class="btn-title">DOWNLOAD MD</span>
-            </button>
+                    <button id="download-md-btn" class="action-btn secondary">
+                        <span class="btn-title">DOWNLOAD MD</span>
+                    </button>
+                </div>
+            </div>
 
-            <!-- Auto Mode Button -->
-            <button id="auto-compress-btn" class="action-btn primary">
-                <span class="btn-title">COMPRESS</span>
-            </button>
+            <!-- Mode 2: distill what matters, then carry it into a new chat -->
+            <div class="controls-group">
+                <span class="controls-group-label">Checkpoint</span>
+                <div class="controls-row">
+                    <!-- Auto Mode Button -->
+                    <button id="auto-compress-btn" class="action-btn primary">
+                        <span class="btn-title">COMPRESS</span>
+                    </button>
 
-            <!-- Manual Mode Button -->
-            <button id="manual-absorb-btn" class="action-btn primary" style="display: none;">
-                <span class="btn-title">ABSORB</span>
-            </button>
+                    <!-- Manual Mode Button -->
+                    <button id="manual-absorb-btn" class="action-btn primary" style="display: none;">
+                        <span class="btn-title">ABSORB</span>
+                    </button>
 
-            <!-- Inject Button -->
-            <button id="inject-btn" class="action-btn secondary">
-                <span class="btn-title">INJECT</span>
-            </button>
+                    <!-- Inject Button -->
+                    <button id="inject-btn" class="action-btn secondary">
+                        <span class="btn-title">INJECT</span>
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- Preview Area -->
