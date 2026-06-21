@@ -43,9 +43,8 @@ LumiFlow requests the following Chrome permissions:
 | Permission | Why We Need It |
 |------------|----------------|
 | `storage` | To save your segments and settings locally |
-| `activeTab` | To read conversations from AI platforms |
-| `scripting` | To inject compressed context into input fields |
-| `host_permissions` | To work on ChatGPT, Claude, and Gemini domains |
+| `activeTab` | To read the current tab and check if it's a supported AI platform |
+| `host_permissions` | To read conversations and inject compressed context on ChatGPT, Claude, and Gemini domains |
 
 **None of these permissions allow us to access data outside the AI platforms you actively use.**
 

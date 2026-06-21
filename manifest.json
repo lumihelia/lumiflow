@@ -7,8 +7,7 @@
   "homepage_url": "https://github.com/lumihelia/lumiflow",
   "permissions": [
     "storage",
-    "activeTab",
-    "scripting"
+    "activeTab"
   ],
   "background": {
     "service_worker": "background.js"
