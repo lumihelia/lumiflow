@@ -41,6 +41,7 @@ body {
 
 .container {
     width: 100%;
+    min-height: 500px;
     padding: 20px;
     display: flex;
     flex-direction: column;
@@ -509,8 +510,8 @@ header {
 
 .footer {
     text-align: center;
-    margin-top: 16px;
-    padding-top: 16px;
+    margin-top: auto;
+    padding-top: 20px;
     border-top: 1px solid var(--border-color);
 }
 
