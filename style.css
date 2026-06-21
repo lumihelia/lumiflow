@@ -160,21 +160,21 @@ header {
 }
 
 /* ========================================
-   CONTROLS (3-Button Layout)
+   CONTROLS (4-Button Layout)
    ======================================== */
 
 .controls {
     display: grid;
-    /* 3 buttons: 2 rows or 3 columns? 3 columns fits if text is short */
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 8px; /* Slightly tighter gap */
+    /* 4 buttons, 2x2: row 1 = export actions, row 2 = AI-loop actions */
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
     width: 100%;
 }
 
 .controls .action-btn {
     width: 100%;
-    padding: 10px 4px; /* Reduced side padding to fit text */
-    font-size: 0.8rem; /* Slightly smaller font */
+    padding: 12px 8px;
+    font-size: 0.85rem;
 }
 
 .action-btn {

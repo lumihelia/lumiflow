@@ -21,7 +21,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const segmentsContainer = document.getElementById('segments-container');
     const checkpointStats = document.getElementById('checkpoint-stats');
     const clearAllBtn = document.getElementById('clear-all-btn');
-    const copyAllBtn = document.getElementById('copy-all-btn');
+    const downloadTxtBtn = document.getElementById('download-txt-btn');
+    const downloadMdBtn = document.getElementById('download-md-btn');
     const exportMdBtn = document.getElementById('export-md-btn');
     const exportJsonBtn = document.getElementById('export-json-btn');
 
@@ -758,109 +759,112 @@ document.addEventListener('DOMContentLoaded', () => {
     // Note: settingsBtn event listener is already defined above (line 371)
 
     // ========================================
-    // COPY ALL (SCRAPE & SAVE)
+    // DOWNLOAD TXT / DOWNLOAD MD (SCRAPE & SAVE AS FILE)
     // ========================================
+    // 直接把整段对话抓下来存成文件，不再先复制到剪贴板或存成 segment——
+    // 抓完即下载，不需要再粘贴到别的地方。
 
+    function getAiSpeakerLabel(platform) {
+        const names = {
+            claude: 'Claude',
+            chatgpt: 'ChatGPT',
+            gemini: 'Gemini'
+        };
+        return names[platform] || 'AI';
+    }
 
-    if (copyAllBtn) {
-        copyAllBtn.addEventListener('click', async () => {
-            try {
-                showMessage("Scraping & Cleaning conversation...", "info");
+    // 把对话数组格式化成带说话人标注的文本（分块处理，避免长对话卡死 UI）
+    async function formatConversationForDownload(conversation, platform, format) {
+        const aiLabel = getAiSpeakerLabel(platform);
+        const CHUNK_SIZE = 50;
+        let text = '';
 
-                const tab = await getActiveTab();
-                if (!validateTab(tab)) return;
+        for (let i = 0; i < conversation.length; i += CHUNK_SIZE) {
+            const chunk = conversation.slice(i, i + CHUNK_SIZE);
+            const formatted = chunk.map(m => {
+                const speaker = m.role === 'user' ? 'User' : aiLabel;
+                const cleanContent = sanitizeContent(m.content);
 
-                // 1. Content Script Communication
-                chrome.tabs.sendMessage(tab.id, {
-                    action: "get_conversation"
-                }, async (response) => {
-                    console.log('[COPY_ALL] Response:', response);
-                    console.log('[COPY_ALL] Runtime error:', chrome.runtime.lastError);
+                if (!cleanContent) return null;
 
-                    if (chrome.runtime.lastError) {
-                        const errorMsg = chrome.runtime.lastError.message;
-                        console.error('[COPY_ALL] Chrome runtime error:', errorMsg);
-                        showMessage(`Failed: ${errorMsg}`, "error");
-                        return;
-                    }
+                return format === 'md'
+                    ? `**${speaker}:**\n\n${cleanContent}`
+                    : `${speaker} said:\n${cleanContent}`;
+            })
+                .filter(item => item !== null)
+                .join('\n\n');
 
-                    if (!response) {
-                        console.error('[COPY_ALL] No response from content script');
-                        showMessage("No response. Try refreshing the page.", "error");
-                        return;
-                    }
+            text += formatted + '\n\n';
 
-                    if (response.status !== 'success') {
-                        const errorMsg = response.message || 'Unknown error';
-                        console.error('[COPY_ALL] Error:', errorMsg);
-                        showMessage(`Failed to capture: ${errorMsg}`, "error");
-                        return;
-                    }
-
-                    const conversation = response.conversation;
-                    if (conversation.length === 0) {
-                        showMessage("No messages found on page", "info");
-                        return;
-                    }
-
-                    // 2. 🆕 Format conversation with chunked processing (prevent UI freeze)
-                    let markdownText = '';
-                    const CHUNK_SIZE = 50;
-
-                    for (let i = 0; i < conversation.length; i += CHUNK_SIZE) {
-                        const chunk = conversation.slice(i, i + CHUNK_SIZE);
-                        const formatted = chunk.map(m => {
-                            const role = m.role === 'user' ? 'User said:' : 'AI said:';
-                            const cleanContent = sanitizeContent(m.content);
-
-                            if (!cleanContent) return null;
-
-                            return `${role}\n${cleanContent}`;
-                        })
-                            .filter(item => item !== null)
-                            .join('\n\n');
-
-                        markdownText += formatted + '\n\n';
-
-                        // Update progress for long conversations
-                        if (conversation.length > 100) {
-                            const progress = Math.min(i + CHUNK_SIZE, conversation.length);
-                            showMessage(`Processing... ${progress}/${conversation.length} messages`, 'info');
-                        }
-
-                        // Let browser breathe
-                        await sleep(0);
-                    }
-
-
-                    // 3. Add as new segment (no confirmation needed - just append)
-                    const newSegment = {
-                        id: Date.now(),
-                        content: markdownText,
-                        platform: response.platform || 'unknown',
-                        timestamp: new Date().toISOString(),
-                        collapsed: false,
-                        isCopyAllSource: true  // 标记这是 Copy All 的内容
-                    };
-
-                    segments.push(newSegment);
-                    renderSegments();
-                    updateCheckpointStats();
-                    await saveSegments();
-
-                    // 5. Double Output Strategy
-                    await navigator.clipboard.writeText(markdownText);
-
-                    // Show success message with segment count
-                    const totalSegments = segments.length;
-                    showMessage(`✓ Added! ${conversation.length} msgs → Segment ${totalSegments} (${markdownText.length} chars)`, "success");
-                });
-
-            } catch (err) {
-                console.error('[ERROR] Copy All failed:', err);
-                handleError(err, "Copy All");
+            if (conversation.length > 100) {
+                const progress = Math.min(i + CHUNK_SIZE, conversation.length);
+                showMessage(`Processing... ${progress}/${conversation.length} messages`, 'info');
             }
-        });
+
+            await sleep(0);
+        }
+
+        return text.trim();
+    }
+
+    async function scrapeAndDownload(format) {
+        const formatLabel = format === 'md' ? 'Markdown' : 'TXT';
+
+        try {
+            showMessage(`Scraping conversation for ${formatLabel} download...`, "info");
+
+            const tab = await getActiveTab();
+            if (!validateTab(tab)) return;
+
+            chrome.tabs.sendMessage(tab.id, {
+                action: "get_conversation"
+            }, async (response) => {
+                console.log(`[DOWNLOAD_${format.toUpperCase()}] Response:`, response);
+
+                if (chrome.runtime.lastError) {
+                    showMessage(`Failed: ${chrome.runtime.lastError.message}`, "error");
+                    return;
+                }
+
+                if (!response) {
+                    showMessage("No response. Try refreshing the page.", "error");
+                    return;
+                }
+
+                if (response.status !== 'success') {
+                    showMessage(`Failed to capture: ${response.message || 'Unknown error'}`, "error");
+                    return;
+                }
+
+                const conversation = response.conversation;
+                if (!conversation || conversation.length === 0) {
+                    showMessage("No messages found on page", "info");
+                    return;
+                }
+
+                const text = await formatConversationForDownload(conversation, response.platform, format);
+
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+                const ext = format === 'md' ? 'md' : 'txt';
+                const mimeType = format === 'md' ? 'text/markdown' : 'text/plain';
+                const filename = `lumiflow_${response.platform || 'unknown'}_${timestamp}.${ext}`;
+
+                downloadFile(text, filename, mimeType);
+                showMessage(`✓ Downloaded ${filename} (${conversation.length} messages)`, "success");
+            });
+
+        } catch (err) {
+            console.error(`[ERROR] Download ${formatLabel} failed:`, err);
+            handleError(err, `Download ${formatLabel}`);
+        }
+    }
+
+    if (downloadTxtBtn) {
+        downloadTxtBtn.addEventListener('click', () => scrapeAndDownload('txt'));
+    }
+
+    if (downloadMdBtn) {
+        downloadMdBtn.addEventListener('click', () => scrapeAndDownload('md'));
     }
 
     // ========================================

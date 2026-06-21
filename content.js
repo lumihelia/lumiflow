@@ -474,13 +474,23 @@ async function handleGetConversation(sendResponse) {
     const platform = detectPlatform();
     console.log('[GET_CONVERSATION] Platform detected:', platform);
 
-    // Gemini 使用虚拟滚动/懒加载，需要先滚动到顶部加载所有消息
-    if (platform === PLATFORMS.GEMINI) {
-      console.log('[LumiFlow] Gemini detected, scrolling to load all messages...');
-      await scrollToLoadAllMessages();
+    // 优先尝试该平台自己的对话接口：一次请求拿到完整对话 JSON，
+    // 不依赖页面渲染/滚动，瞬间且不受 UI 改版影响。
+    let messages = await fetchConversationViaAPI(platform);
+
+    if (messages) {
+      console.log('[GET_CONVERSATION] Loaded via API:', messages.length, 'messages');
+    } else {
+      // 接口不可用（未登录/接口变更/团队账号等）时，退回 DOM 抓取。
+      // ChatGPT/Claude/Gemini 均会在长对话中懒加载/卸载早期消息，
+      // 必须先滚动到顶部把全部消息加载进 DOM，否则只能抓到当前已渲染的部分
+      if (platform !== PLATFORMS.UNKNOWN) {
+        console.log(`[LumiFlow] API path unavailable, scrolling to load full ${platform} history before DOM extraction...`);
+        await scrollToLoadAllMessages(platform);
+      }
+      messages = extractConversation();
     }
 
-    const messages = extractConversation();
     console.log('[GET_CONVERSATION] Extracted messages:', messages.length);
 
     if (messages.length === 0) {
@@ -511,41 +521,222 @@ async function handleGetConversation(sendResponse) {
   }
 }
 
-// Gemini 懒加载修复：滚动到顶部加载所有消息
-async function scrollToLoadAllMessages() {
-  return new Promise((resolve) => {
-    // 找到对话容器
-    const scrollContainer = document.querySelector('main') ||
-      document.querySelector('[class*="conversation"]') ||
-      document.body;
+// ========================================
+// DIRECT API EXTRACTION (ChatGPT / Claude)
+// ========================================
+// ChatGPT 和 Claude 的网页本身就是靠调用自己的后端对话接口来渲染整个对话的——
+// 这个接口一次性返回完整对话 JSON（不分页、不受虚拟滚动影响）。
+// 直接复用同一个接口，比抓 DOM 快得多也稳得多；唯一代价是这是未公开的内部接口，
+// 接口形状可能在对方不通知的情况下变化。任何一步失败都返回 null，
+// 调用方会自动退回到现有的 DOM 抓取 + 滚动加载方案，不会比之前更差。
 
-    let lastScrollTop = scrollContainer.scrollTop;
-    let scrollAttempts = 0;
-    const maxAttempts = 20; // 最多尝试 20 次
+async function fetchConversationViaAPI(platform) {
+  try {
+    if (platform === PLATFORMS.CHATGPT) {
+      return await fetchChatGPTConversationAPI();
+    }
+    if (platform === PLATFORMS.CLAUDE) {
+      return await fetchClaudeConversationAPI();
+    }
+  } catch (error) {
+    console.warn('[LumiFlow] API extraction failed, falling back to DOM scraping:', error.message);
+  }
+  return null;
+}
 
-    const scrollUp = () => {
-      // 滚动到顶部
-      scrollContainer.scrollTo({ top: 0, behavior: 'instant' });
+function fetchWithTimeout(url, options, timeoutMs = 8000) {
+  return Promise.race([
+    fetch(url, options),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('API request timed out')), timeoutMs))
+  ]);
+}
 
-      scrollAttempts++;
+function getChatGPTConversationId() {
+  const match = window.location.pathname.match(/\/c\/([a-zA-Z0-9-]+)/);
+  return match ? match[1] : null;
+}
 
-      // 等待内容加载
-      setTimeout(() => {
-        const currentScrollTop = scrollContainer.scrollTop;
+async function fetchChatGPTConversationAPI() {
+  const conversationId = getChatGPTConversationId();
+  if (!conversationId) return null;
 
-        // 如果已经到顶部或达到最大尝试次数
-        if (scrollContainer.scrollTop === 0 || scrollAttempts >= maxAttempts) {
-          console.log(`[LumiFlow] Scroll complete after ${scrollAttempts} attempts`);
-          // 等待最后一批内容渲染
-          setTimeout(resolve, 500);
-        } else {
-          scrollUp();
-        }
-      }, 200);
-    };
+  const sessionRes = await fetchWithTimeout('/api/auth/session');
+  if (!sessionRes.ok) return null;
+  const session = await sessionRes.json();
+  const accessToken = session && session.accessToken;
+  if (!accessToken) return null;
 
-    scrollUp();
+  const convRes = await fetchWithTimeout(`/backend-api/conversation/${conversationId}`, {
+    headers: { 'Authorization': `Bearer ${accessToken}` }
   });
+  if (!convRes.ok) return null;
+
+  const data = await convRes.json();
+  const mapping = data && data.mapping;
+  const currentNode = data && data.current_node;
+  if (!mapping || !currentNode) return null;
+
+  // current_node 是当前激活分支的叶子节点，沿 parent 一路走到根，
+  // 再反转就是按时间顺序排列的完整对话（含所有楼层，不依赖任何渲染状态）
+  const orderedNodes = [];
+  let nodeId = currentNode;
+  let guard = 0;
+  while (nodeId && mapping[nodeId] && guard < 5000) {
+    orderedNodes.push(mapping[nodeId]);
+    nodeId = mapping[nodeId].parent;
+    guard++;
+  }
+  orderedNodes.reverse();
+
+  const messages = [];
+  for (const node of orderedNodes) {
+    const msg = node.message;
+    if (!msg || !msg.content) continue;
+
+    const role = msg.author && msg.author.role;
+    if (role !== 'user' && role !== 'assistant') continue; // 跳过 system/tool 等非对话内容
+
+    const content = extractChatGPTNodeText(msg.content);
+    if (content && content.trim().length > 0) {
+      messages.push({ role: role === 'user' ? 'user' : 'model', content: content.trim() });
+    }
+  }
+
+  return messages.length > 0 ? messages : null;
+}
+
+function extractChatGPTNodeText(content) {
+  if (content.content_type === 'text' && Array.isArray(content.parts)) {
+    return content.parts.filter(p => typeof p === 'string').join('\n');
+  }
+  if (typeof content.text === 'string') {
+    return content.text;
+  }
+  if (Array.isArray(content.parts)) {
+    return content.parts.filter(p => typeof p === 'string').join('\n');
+  }
+  return '';
+}
+
+function getClaudeConversationId() {
+  const match = window.location.pathname.match(/\/chat\/([a-zA-Z0-9-]+)/);
+  return match ? match[1] : null;
+}
+
+async function fetchClaudeConversationAPI() {
+  const conversationId = getClaudeConversationId();
+  if (!conversationId) return null;
+
+  const orgRes = await fetchWithTimeout('/api/organizations');
+  if (!orgRes.ok) return null;
+  const orgs = await orgRes.json();
+  const orgId = Array.isArray(orgs) && orgs.length > 0 ? orgs[0].uuid : null;
+  if (!orgId) return null;
+
+  const convRes = await fetchWithTimeout(
+    `/api/organizations/${orgId}/chat_conversations/${conversationId}?tree=True&rendering_mode=messages&render_all_tools=true`
+  );
+  if (!convRes.ok) return null;
+
+  const data = await convRes.json();
+  const rawMessages = data && data.chat_messages;
+  if (!Array.isArray(rawMessages)) return null;
+
+  const messages = [];
+  for (const m of rawMessages) {
+    const role = m.sender === 'human' ? 'user' : 'model';
+    const content = extractClaudeMessageText(m);
+    if (content && content.trim().length > 0) {
+      messages.push({ role, content: content.trim() });
+    }
+  }
+
+  return messages.length > 0 ? messages : null;
+}
+
+function extractClaudeMessageText(m) {
+  if (typeof m.text === 'string' && m.text.length > 0) {
+    return m.text;
+  }
+  if (Array.isArray(m.content)) {
+    return m.content
+      .filter(block => block && (block.type === 'text' || typeof block.text === 'string'))
+      .map(block => block.text || '')
+      .join('\n\n');
+  }
+  return '';
+}
+
+// 懒加载修复：所有平台在长对话中都会按需加载/卸载早期消息（无限滚动）。
+// 反复滚动到顶部，直到消息数量连续多轮保持不变，才认为历史已全部加载。
+// 用"消息数量是否还在增长"判断完成，而不是 scrollTop===0
+// （滚动容器到顶后，新内容会被插入顶部，scrollTop 会被浏览器顶回非 0）。
+function getMessageCountSelector(platform) {
+  switch (platform) {
+    case PLATFORMS.CLAUDE:
+      return '[data-test-render-count]';
+    case PLATFORMS.CHATGPT:
+      return '[data-message-author-role]';
+    case PLATFORMS.GEMINI:
+      return '[class*="message"], [data-message-id]';
+    default:
+      return null;
+  }
+}
+
+// 从一条已知消息元素出发，向上找到真正可滚动的祖先容器
+function findScrollableAncestor(el) {
+  let node = el ? el.parentElement : null;
+
+  while (node && node !== document.documentElement) {
+    const style = window.getComputedStyle(node);
+    const overflowY = style.overflowY;
+    const isScrollableStyle = overflowY === 'auto' || overflowY === 'scroll';
+
+    if (isScrollableStyle && node.scrollHeight > node.clientHeight + 10) {
+      return node;
+    }
+    node = node.parentElement;
+  }
+
+  return document.scrollingElement || document.documentElement;
+}
+
+async function scrollToLoadAllMessages(platform) {
+  const countSelector = getMessageCountSelector(platform);
+  if (!countSelector) return;
+
+  const sampleEl = document.querySelector(countSelector);
+  const scrollContainer = findScrollableAncestor(sampleEl);
+
+  let previousCount = document.querySelectorAll(countSelector).length;
+  let stableRounds = 0;
+  let attempts = 0;
+  const maxAttempts = 60; // 硬上限，避免极端情况下死循环
+  const stableRoundsNeeded = 3; // 连续 3 轮数量不变，才认为加载完成
+
+  console.log(`[LumiFlow] Scroll-load start: ${previousCount} messages currently in DOM`);
+
+  while (attempts < maxAttempts && stableRounds < stableRoundsNeeded) {
+    scrollContainer.scrollTo({ top: 0, behavior: 'instant' });
+    await sleep(350);
+
+    const currentCount = document.querySelectorAll(countSelector).length;
+
+    if (currentCount === previousCount) {
+      stableRounds++;
+    } else {
+      stableRounds = 0;
+      previousCount = currentCount;
+    }
+
+    attempts++;
+  }
+
+  // 给最后一批内容留出渲染时间
+  await sleep(500);
+
+  console.log(`[LumiFlow] Scroll-load complete: ${previousCount} messages after ${attempts} attempts`);
 }
 
 // ========================================
