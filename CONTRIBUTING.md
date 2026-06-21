@@ -60,7 +60,7 @@ cd lumiflow
 **Commit Messages**:
 ```
 Good:
-✅ "Fix: Copy All now captures full conversation content"
+✅ "Fix: ChatGPT export now captures full conversation via direct API"
 ✅ "Feature: Add support for Perplexity.ai"
 ✅ "Docs: Update installation instructions"
 
