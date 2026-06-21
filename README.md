@@ -48,8 +48,10 @@ Instead of dumping 10,000 words, it:
 
 ## ✨ Features
 
-### 🆕 NEW in v2.3.1!
-- ✨ **Improved COPY ALL** - Now appends segments automatically (no confirmation needed)
+### 🆕 Recent Updates
+- ✨ **Direct Download (TXT/MD)** - Export the full conversation straight to a file, no clipboard or segment step
+- 🏷️ **Speaker-Labeled Exports** - Every line tagged as User / ChatGPT / Claude / Gemini
+- 🎯 **Reliable Full-Conversation Capture** - ChatGPT/Claude read directly from the platform's own conversation API (instant, complete); falls back to scroll-loading the page if that's unavailable
 - 🐛 **Bug Fixes** - Fixed critical PLATFORMS and sleep() errors
 - 📝 **Enhanced Logging** - Better debugging with detailed console messages
 - 🔍 **Troubleshooting Guide** - New TROUBLESHOOTING.md with solutions
@@ -132,6 +134,15 @@ Instead of dumping 10,000 words, it:
 
 3. **Go to new conversation**
    - Click INJECT
+
+### Download the Full Conversation (TXT/MD)
+
+1. **Open the conversation you want to export**
+
+2. **Click DOWNLOAD TXT or DOWNLOAD MD**
+   - The full conversation is scraped and saved directly as a file
+   - Each line is labeled by speaker (User / ChatGPT / Claude / Gemini)
+   - No clipboard step, no segment created — this is a standalone export, separate from Compress/Inject
 
 ---
 

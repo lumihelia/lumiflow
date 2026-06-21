@@ -279,12 +279,12 @@ Want to start fresh?
 - Confirm
 - All Segments are cleared
 
-### Tip 4: Copy All (Full Copy)
+### Tip 4: Download TXT / Download MD (Full Export)
 
-Want to copy the entire conversation text?
-- Click "COPY ALL" button
-- Entire conversation is scraped and copied to clipboard
-- Can paste elsewhere (like Notion)
+Want the entire conversation as a file?
+- Click "DOWNLOAD TXT" or "DOWNLOAD MD"
+- The full conversation is scraped and saved directly as a file — no clipboard step, no segment created
+- Each line is labeled by speaker: "User said:" / "ChatGPT said:" / "Claude said:" / "Gemini said:" (Markdown export bolds the speaker name instead)
 
 ---
 
@@ -335,10 +335,11 @@ Want to copy the entire conversation text?
 
 ---
 
-### Q5: Why Does Copy All Only Copy Part of the Content?
+### Q5: Why Does Download TXT/MD Only Capture Part of the Conversation?
 
 **Fixed!**
-- In the latest version (v2.1+), Copy All copies the full conversation
+- ChatGPT and Claude now read the conversation directly from the platform's own backend (the same data their web UI renders from), so the export is complete regardless of scroll position
+- If that path is unavailable (e.g. logged out, team workspace account), it automatically falls back to scrolling the page to load the full history before scraping
 - If issues persist, refresh the page and retry
 
 ---
@@ -558,7 +559,7 @@ You now know all of LumiFlow's features.
 - Emphasizes local-only storage
 
 ### 9. **Chunked Processing** ⚡
-- Prevents UI freeze on long conversations in Copy All
+- Prevents UI freeze on long conversations in Download TXT/MD
 - Shows progress: "Processing... 150/300 messages"
 - Processes in 50-message chunks
 
