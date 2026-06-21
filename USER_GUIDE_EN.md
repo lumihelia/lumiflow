@@ -570,6 +570,6 @@ You now know all of LumiFlow's features.
 
 ---
 
-**Version**: v2.3.0
-**Last Updated**: 2026-01-21
+**Version**: v2.4.0
+**Last Updated**: 2026-06-21
 **License**: MIT

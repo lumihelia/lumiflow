@@ -1,8 +1,8 @@
-# LumiFlow v2.3.1
+# LumiFlow v2.4.0
 
 **AI Context Manager** - Migrate conversations across AI platforms without losing your mind.
 
-[![Version](https://img.shields.io/badge/version-2.3.1-blue.svg)](https://github.com/lumihelia/lumiflow/releases)
+[![Version](https://img.shields.io/badge/version-2.4.0-blue.svg)](https://github.com/lumihelia/lumiflow/releases)
 [![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-brightgreen.svg)]()
 [![License](https://img.shields.io/badge/license-MIT-purple.svg)](LICENSE)
 

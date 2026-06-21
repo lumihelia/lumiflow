@@ -1,11 +1,11 @@
-// content.js - LumiFlow v2.1.1
+// content.js - LumiFlow v2.4.0
 // ===================================
 // Content script for AI chat platforms
 // Only runs on claude.ai, chatgpt.com, gemini.google.com
 // (controlled by manifest.json content_scripts.matches)
 // ===================================
 
-console.log("LumiFlow v2.3.1: Content script loaded on", window.location.hostname);
+console.log("LumiFlow v2.4.0: Content script loaded on", window.location.hostname);
 
 // ========================================
 // DOMAIN PROTECTION (双重防护)
