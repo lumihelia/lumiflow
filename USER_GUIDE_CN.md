@@ -1,603 +1,197 @@
-# 📖 LumiFlow 使用说明 (v2.3.1)
+# LumiFlow 使用说明
 
-欢迎使用 LumiFlow！这份文档将帮你在 5 分钟内上手。
+[中文](USER_GUIDE_CN.md) · [English](USER_GUIDE_EN.md)
 
-## 🎉 v2.3.1 更新内容
+适用于 **LumiFlow v2.4.0**。
 
-### ✨ COPY ALL 体验优化
-- **之前**：点击 COPY ALL 时，如果已有 segments 会弹窗询问是否替换
-- **现在**：直接追加新 segment，无需确认！
+LumiFlow 目前有两条主要路径：
 
-**使用场景**：
-```
-场景 1：合并多个对话
-1. ChatGPT 对话 A → COPY ALL → Segment 1
-2. Claude 对话 B → COPY ALL → Segment 2
-3. Gemini 对话 C → COPY ALL → Segment 3
-4. 点击 INJECT → 三个对话合并注入！
+1. 把完整对话导出成 TXT / Markdown。
+2. 把需要继续带走的上下文整理成 checkpoint，再注入新会话。
 
-场景 2：增量备份
-1. 长对话进行到一半 → COPY ALL 保存
-2. 继续聊天...
-3. 再次 COPY ALL → 自动追加，不覆盖之前的内容
-```
+## 安装
 
-### 🐛 关键 Bug 修复
-- ✅ 修复 `PLATFORMS not defined` 错误（扩展无法加载）
-- ✅ 修复 `sleep is not defined` 错误（COPY ALL 失败）
-- ✅ 增强错误日志，方便诊断问题
+### Chrome Web Store
 
-### 📚 新增文档
-- 🔍 **TROUBLESHOOTING.md** - 常见问题排查指南
+直接安装：[LumiFlow - Chrome Web Store](https://chromewebstore.google.com/detail/lumiflow/onekhnkogijnmpddmceomhibhenhffaf)
 
----
+安装后可以把 LumiFlow 固定到浏览器工具栏，方便在 ChatGPT、Claude 和 Gemini 对话页随时打开。
 
-## 🚀 快速开始
+### 从源码加载
 
-### 第一步：安装扩展
-
-1. **下载 LumiFlow**
-   - 从 [GitHub Releases](https://github.com/lumihelia/lumiflow/releases) 下载最新版 `LumiFlow.zip`
-   - 解压到任意文件夹
-
-2. **加载到 Chrome**
-   - 打开 Chrome 浏览器
-   - 访问 `chrome://extensions/`
-   - 打开右上角的「开发者模式」
-   - 点击「加载已解压的扩展程序」
-   - 选择刚才解压的 `LumiFlow` 文件夹
-
-3. **固定扩展图标（推荐）**
-   - 点击浏览器右上角的拼图图标 🧩
-   - 找到 LumiFlow，点击📌图标
-   - 现在可以随时点击 LumiFlow 图标了
-
-✅ **安装完成！**
-
----
-
-## 🎯 核心概念
-
-### LumiFlow 解决什么问题？
-
-**场景 A**：你在 ChatGPT 里聊了 100 条消息，对话太长了，AI 开始"忘事儿"
-→ LumiFlow 帮你压缩成精华，开新对话继续
-
-**场景 B**：你在 Claude 里卡住了，想换 ChatGPT 试试，但不想重新解释背景
-→ LumiFlow 帮你把上下文搬过去
-
-**场景 C**：你在多个 AI 平台间切换工作，每次都要重复说明项目背景
-→ LumiFlow 让 AI 无缝接力
-
----
-
-## 🎮 两种模式
-
-LumiFlow 有两种工作模式，根据需求选择：
-
-### 模式 1：Auto Mode（自动模式）- 推荐新手
-
-**适合场景**：快速压缩整个对话
-
-**工作流程**：
-```
-1. 在 ChatGPT/Claude/Gemini 的对话页面
-2. 点击 LumiFlow 图标
-3. 点击「COMPRESS」按钮
-4. 等待 5-10 秒（AI 正在压缩）
-5. 完成！压缩后的内容已保存
+```bash
+git clone https://github.com/lumihelia/lumiflow.git
+cd lumiflow
 ```
 
-**优点**：
-- ✅ 一键完成，超快
-- ✅ AI 自动提取重点
-- ✅ 适合长对话（100+ 条消息）
+然后打开 `chrome://extensions/`，开启 Developer mode，点击 **Load unpacked / 加载已解压的扩展程序**，选择仓库目录。
 
-**缺点**：
-- ⚠️ 需要配置 API（见下方）
-- ⚠️ 压缩需要几秒钟
+## 支持的平台
 
----
+- ChatGPT：`chatgpt.com` / `chat.openai.com`
+- Claude：`claude.ai`
+- Gemini：`gemini.google.com`
 
-### 模式 2：Manual Mode（手动模式）- 推荐高级用户
+需要在实际对话页面中使用，主页、设置页或其他非对话页面可能无法提取内容。
 
-**适合场景**：精确控制保留哪些内容
+## 工作流一：导出完整对话
 
-**工作流程**：
-```
-1. 点击 LumiFlow 图标
-2. 切换到「Manual Mode」
-3. 在对话页面选中重要内容（用鼠标拖选）
-4. 点击「ABSORB」按钮
-5. 重复 3-4，选择更多内容
-6. 完成！所有选中的内容变成卡片
-```
+需要完整保存一段聊天时，直接使用：
 
-**优点**：
-- ✅ 精确控制（只保留你选的）
-- ✅ 不需要 API
-- ✅ 即时完成（无延迟）
+- `DOWNLOAD TXT`
+- `DOWNLOAD MD`
 
-**缺点**：
-- ⚠️ 需要手动选择多次
-- ⚠️ 适合较短的对话
+导出文件会保留说话者标签，例如 User、ChatGPT、Claude、Gemini。
 
----
+这个流程：
 
-## 📦 管理 Segments（内容卡片）
+- 不会创建 segment；
+- 不会压缩对话；
+- 不需要模型 API key；
+- 适合归档、阅读、备份或交给其他工具继续处理。
 
-无论哪种模式，压缩/吸收的内容都会变成「Segments」（卡片）。
+ChatGPT 和 Claude 会优先读取当前平台用于渲染会话的数据；如果这条路径不可用，LumiFlow 会回退到页面加载与提取。Gemini 通过页面提取完成导出。
 
-### Segments 是什么？
+如果导出内容明显不完整，先刷新当前对话页再重试；仍然存在问题时参考 [故障排查](TROUBLESHOOTING.zh-CN.md)。
 
-每个 Segment 就是一张卡片，代表一段重要内容。
+## 工作流二：创建并迁移 Checkpoint
 
-**你可以**：
-- 📝 **编辑**：点击卡片右边的 ✎ 按钮
-- 🗑️ **删除**：点击卡片右边的 × 按钮
-- 🔄 **排序**：拖动 ⋮⋮ 按钮重新排列
-- 👁️ **展开/折叠**：点击卡片任意位置
+Checkpoint 保存的是“下一段对话仍然需要知道什么”。它由一个或多个 segments 组成。
 
-### Segments 预览区域
+### Auto Mode：自动压缩整段对话
 
-```
-┌─────────────────────────────────┐
-│ Checkpoint Segments          × │ ← 清空所有
-├─────────────────────────────────┤
-│ ┌───────────────────────┐       │
-│ │ Segment 1  ⋮⋮ ✎ ×   │       │
-│ ├───────────────────────┤       │
-│ │ 关于项目目标的讨论... │       │
-│ └───────────────────────┘       │
-│                                 │
-│ ┌───────────────────────┐       │
-│ │ Segment 2  ⋮⋮ ✎ ×   │       │
-│ ├───────────────────────┤       │
-│ │ 当前进度和遇到的问题...│       │
-│ └───────────────────────┘       │
-│                                 │
-│ 2 segments, 1500 characters     │
-└─────────────────────────────────┘
-```
+适合：对话很长，希望快速提取目标、当前状态、重要决定、约束、例子、失败尝试和下一步。
 
----
+使用步骤：
 
-## 🚀 注入到新对话（INJECT）
+1. 在 ChatGPT / Claude / Gemini 的对话页面打开 LumiFlow。
+2. 点击右上角设置按钮。
+3. 开启 **Enable API Compression**。
+4. 选择 Gemini、OpenAI 或 Anthropic。
+5. 填入你自己的 API key 并保存。
+6. 回到主界面，保持 Auto Mode。
+7. 点击 `COMPRESS`。
+8. 压缩完成后，结果会进入 Checkpoint Segments 区域。
 
-当你准备好切换对话时：
+Auto Mode 会把需要压缩的内容直接发送给你选择的 API 提供商。API key 与 LumiFlow 设置保存在浏览器本地；Google / OpenAI / Anthropic 自己的额度、计费和隐私政策仍然适用。
 
-### 步骤：
+### Manual Mode：手动选择需要带走的内容
 
-1. **打开新的对话**
-   - 可以是同一个 AI 平台的新对话
-   - 也可以是不同的 AI 平台（ChatGPT → Claude）
+适合：只想保留少量关键片段，或者希望自己决定上下文，不使用第三方压缩 API。
 
-2. **点击 INJECT 按钮**
-   - 压缩后的内容会自动出现在输入框
+使用步骤：
 
-3. **点击发送**
-   - AI 会读取上下文，无缝继续
+1. 打开 LumiFlow。
+2. 切换到 Manual Mode。
+3. 在当前对话页面中选中需要保存的文字。
+4. 点击 `ABSORB`。
+5. 继续选择其他片段并重复 `ABSORB`。
 
-### 智能压缩
+每次吸收的内容都会成为一个 segment。
 
-如果你的 Segments 总长度超过 800 字符，LumiFlow 会：
-- 检测是否配置了 API
-- **有 API**：自动再压缩一次（10:1 压缩比）
-- **无 API**：弹窗提醒（可以选择继续或取消）
+## 管理 Checkpoint Segments
 
----
+Checkpoint 区域允许你继续整理准备带走的上下文：
 
-## ⚙️ 配置 API（可选）
+- 编辑 segment；
+- 删除 segment；
+- 拖动排序；
+- 展开 / 折叠；
+- 清空全部 segments；
+- 导出 checkpoint 为 Markdown；
+- 导出 checkpoint 为 JSON。
 
-配置 API 后，可以使用 Auto Mode 和智能压缩。
+这里最重要的动作是编辑。Auto Mode 给出的压缩结果仍然可以由你重新措辞、删去噪音、补充约束，再决定哪些内容进入下一段会话。
 
-### 支持的 API 提供商
+## 把 Checkpoint 注入新会话
 
-- **Google Gemini** (推荐：免费额度大)
-- **OpenAI** (ChatGPT 的 API)
-- **Anthropic** (Claude 的 API)
+1. 打开一个新的 ChatGPT / Claude / Gemini 对话。
+2. 打开 LumiFlow。
+3. 确认 segments 已经整理好。
+4. 点击 `INJECT`。
+5. Checkpoint 会进入当前对话的输入框。
+6. 检查内容后，由你决定是否发送。
 
-### 配置步骤
+当 checkpoint 很长时，LumiFlow 可能提示是否进一步压缩。配置了 API 时可以再次压缩；没有配置 API 时，可以选择继续注入现有内容或取消。
 
-1. **点击设置图标** ⚙️（右上角）
+## API 设置
 
-2. **打开「Enable API Compression」**
+LumiFlow 支持：
 
-3. **选择 API 提供商**
-   - 推荐新手：Gemini（免费额度最多）
+- Google Gemini API
+- OpenAI API
+- Anthropic API
 
-4. **输入 API Key**
-   - Gemini: 访问 [Google AI Studio](https://aistudio.google.com/app/apikey) 获取
-   - OpenAI: 访问 [OpenAI Platform](https://platform.openai.com/api-keys)
-   - Anthropic: 访问 [Anthropic Console](https://console.anthropic.com/)
+API compression 是可选能力。Manual Mode、完整对话导出和本地 segment 管理不依赖模型 API。
 
-5. **点击「Save API Settings」**
+### 关于费用
 
-✅ **配置完成！现在可以使用 Auto Mode 了**
+LumiFlow 本身没有订阅，也没有人为设置操作次数限制。
 
-### 隐私说明
+API compression 使用的是你自己的第三方 API key，因此实际费用、免费额度和限速由相应提供商决定。
 
-- ✅ API Key 只存储在你的浏览器本地
-- ✅ 不会发送到我们的服务器（我们根本没有服务器）
-- ✅ 只在压缩时直接调用对应的 API
+### 关于 API key
 
----
+API key 保存在 `chrome.storage.local`。LumiFlow 当前没有自己的后端服务器，API 请求由扩展直接发给你选择的提供商。
 
-## 📋 完整使用流程示例
+完整隐私边界见 [隐私说明](PRIVACY.zh-CN.md)。
 
-### 示例 1：同平台，新对话（对话太长）
+## 快捷键
 
-```
-场景：在 ChatGPT 聊了 200 条消息，AI 开始答非所问
+默认快捷键：
 
-1. 点击 LumiFlow 图标
-2. 模式：Auto Mode
-3. 点击「COMPRESS」
-4. 等待 5 秒（压缩中）
-5. ChatGPT 右上角点「New chat」
-6. 点击 LumiFlow 图标
-7. 点击「INJECT」
-8. 点「Send」
-9. ✅ AI 继续之前的话题，不再答非所问
-```
+| 操作 | Windows / Linux | macOS |
+| --- | --- | --- |
+| COMPRESS | `Ctrl+Shift+C` | `Command+Shift+C` |
+| INJECT | `Ctrl+Shift+I` | `Command+Shift+I` |
+| 打开扩展 | `Ctrl+Shift+L` | `Command+Shift+L` |
 
----
+浏览器或其他扩展可能占用同一组快捷键；如果快捷键没有响应，可以在 Chrome 的扩展快捷键设置中检查冲突。
 
-### 示例 2：跨平台迁移（ChatGPT → Claude）
+## 常见问题
 
-```
-场景：在 ChatGPT 卡住了，想试试 Claude
+### COMPRESS 没有工作
 
-1. 在 ChatGPT 对话页面
-2. 点击 LumiFlow 图标
-3. 切换到「Manual Mode」
-4. 选中项目背景描述的部分
-5. 点击「ABSORB」
-6. 选中当前问题的部分
-7. 点击「ABSORB」
-8. 选中已经尝试的解决方案
-9. 点击「ABSORB」
-10. 打开 Claude.ai，开新对话
-11. 点击 LumiFlow 图标
-12. 点击「INJECT」
-13. 点「Send」
-14. ✅ Claude 接收到完整背景，直接开始帮忙
-```
+先确认：
 
----
+- 当前页面是受支持的 AI 对话页；
+- API compression 已开启；
+- API provider 与 key 已保存；
+- 第三方 API 仍有可用额度；
+- 网络可以访问相应 API。
 
-### 示例 3：多次选择性吸收（Manual Mode）
+如果只想继续工作，可以切到 Manual Mode，用 `ABSORB` 手动整理 checkpoint。
 
-```
-场景：长对话中只想保留特定几段
+### INJECT 后输入框没有内容
 
-1. 切换到 Manual Mode
-2. 浏览对话，找到第一段重要内容
-3. 鼠标拖选 → 点「ABSORB」
-4. 继续往下翻，找到第二段
-5. 鼠标拖选 → 点「ABSORB」
-6. 重复，直到选完所有重要部分
-7. 预览区域会显示多个 Segment 卡片
-8. 点击卡片可以编辑、删除、重排序
-9. 满意后，去新对话点「INJECT」
-```
+先点击目标 AI 的输入框让它获得焦点，再重新点击 `INJECT`。如果页面刚刷新，等页面和扩展脚本加载完成后再试。
 
----
+### 完整导出只有部分消息
 
-## 🎨 高级技巧
+刷新对话页后重试。长对话的回退提取路径可能需要先加载历史内容；如果问题持续出现，请记录平台、浏览器版本和控制台日志，再提交 issue。
 
-### 技巧 1：编辑 Segments
+更多排查步骤见 [TROUBLESHOOTING.zh-CN.md](TROUBLESHOOTING.zh-CN.md)。
 
-压缩后发现某段不够精确？
-- 点击 ✎ 按钮
-- 直接在卡片里修改
-- 点击 ✓ 保存
+## 本地数据与删除
 
-### 技巧 2：重排 Segments
+LumiFlow 会在浏览器本地保存：
 
-想改变内容顺序？
-- 按住 ⋮⋮ 按钮
-- 拖动到新位置
-- 松开鼠标
+- Checkpoint segments；
+- API 设置与 API key；
+- Auto / Manual 等偏好设置。
 
-### 技巧 3：清空 Segments
+清空 Checkpoint Segments 可以删除当前保存的 segments。卸载扩展会删除该扩展对应的本地存储数据。
 
-想重新开始？
-- 点击右上角的 × (Clear All)
-- 确认
-- 所有 Segments 被清空
+## 获取帮助
 
-### 技巧 4：Download TXT / Download MD（完整导出）
+Bug、平台兼容性问题或功能建议：
 
-想把整个对话存成文件？
-- 点击「DOWNLOAD TXT」或「DOWNLOAD MD」
-- 整个对话会被抓取并直接下载成文件，不经过剪贴板，也不会存成 segment
-- 每一句都标注了说话人："User said:" / "ChatGPT said:" / "Claude said:" / "Gemini said:"（Markdown 版本用加粗标注说话人）
+https://github.com/lumihelia/lumiflow/issues
 
----
+提交问题时，尽量包含：
 
-## ⚠️ 常见问题
-
-### Q1: 点击按钮没反应？
-
-**解决方法**：
-1. 刷新页面（F5）
-2. 重新点击按钮
-3. 如果还不行，检查是否在支持的平台（ChatGPT/Claude/Gemini）
-
----
-
-### Q2: Auto Mode 一直转圈圈？
-
-**可能原因**：
-- AI 平台响应慢
-- API 配置错误
-
-**解决方法**：
-1. 等待 30 秒
-2. 如果超时，切换到 Manual Mode
-3. 手动发送压缩 Prompt，然后选中 AI 的回复，点 ABSORB
-
----
-
-### Q3: INJECT 后内容没出现在输入框？
-
-**解决方法**：
-1. 先点击一下输入框（让它获得焦点）
-2. 再点 INJECT
-3. 如果还不行，内容已自动复制到剪贴板，手动粘贴即可（Ctrl+V / Cmd+V）
-
----
-
-### Q4: API Key 安全吗？
-
-**回答**：
-- ✅ 完全安全
-- API Key 只存储在你的浏览器本地（chrome.storage.local）
-- 不会上传到任何服务器
-- 只在压缩时直接调用官方 API
-
-**验证方法**：
-- 代码完全开源，可以审查
-- 可以在浏览器 DevTools → Application → Storage → Local Storage 查看
-
----
-
-### Q5: 为什么 Download TXT/MD 只导出了部分对话？
-
-**已修复**！
-- ChatGPT 和 Claude 现在直接读取平台自己的后端对话接口（跟网页本身渲染对话用的是同一份数据），不管滚没滚到顶，导出的都是完整对话
-- 如果这条路径不可用（比如未登录、团队账号），会自动退回滚动加载页面后再抓取
-- 如果还有问题，请刷新页面后重试
-
----
-
-### Q6: 支持哪些 AI 平台？
-
-**当前支持**：
-- ✅ ChatGPT (chat.openai.com, chatgpt.com)
-- ✅ Claude (claude.ai)
-- ✅ Gemini (gemini.google.com)
-
-**未来计划**：
-- 🔜 Perplexity
-- 🔜 You.com
-- 🔜 其他平台（欢迎建议）
-
----
-
-### Q7: 压缩质量不满意怎么办？
-
-**方法 A**：编辑 Segments
-- 点击 ✎ 按钮
-- 手动调整内容
-
-**方法 B**：切换到 Manual Mode
-- 完全手动控制保留哪些内容
-
-**方法 C**：自定义 Prompt（高级）
-- 修改 `content.js` 中的 `DEFAULT_COMPRESSION_PROMPT`
-- 重新加载扩展
-
----
-
-### Q8: 有使用次数限制吗？
-
-**没有！**
-- ✅ 无限次 ABSORB
-- ✅ 无限次 COMPRESS
-- ✅ 无限次 INJECT
-- ✅ 完全免费
-
----
-
-## 🎯 最佳实践
-
-### 1. 何时使用 Auto Mode？
-
-✅ **推荐场景**：
-- 对话超长（100+ 条消息）
-- 想快速压缩
-- 信任 AI 的判断
-
-❌ **不推荐场景**：
-- 对话中有很多无关内容
-- 需要精确控制保留哪些
-
----
-
-### 2. 何时使用 Manual Mode？
-
-✅ **推荐场景**：
-- 只想保留特定几段
-- 对话包含敏感信息（不想通过 API）
-- 想完全掌控
-
-❌ **不推荐场景**：
-- 对话太长，手动选择太累
-
----
-
-### 3. 压缩比例建议
-
-**目标**：
-- 原始对话：10,000 字
-- 压缩后：1,000 字左右（10:1 压缩比）
-
-**经验**：
-- 如果压缩后 > 2,000 字，可能还不够精炼
-- 如果压缩后 < 500 字，可能丢失了重要信息
-
----
-
-### 4. 跨平台迁移策略
-
-**ChatGPT → Claude**：
-- 适合：需要更深入的分析、长文本推理
-- 压缩重点：保留事实、数据、已有结论
-
-**Claude → ChatGPT**：
-- 适合：需要生成代码、快速迭代
-- 压缩重点：保留需求、技术栈、约束条件
-
-**Claude/ChatGPT → Gemini**：
-- 适合：需要搜索、多模态（图片）
-- 压缩重点：保留问题、已尝试的方案
-
----
-
-## 🆘 需要帮助？
-
-### 报告问题
-
-遇到 Bug？
-1. 访问 [GitHub Issues](https://github.com/lumihelia/lumiflow/issues)
-2. 点击「New Issue」
-3. 描述问题（附上截图更好）
-
-### 功能建议
-
-有好点子？
-1. 同样访问 [GitHub Issues](https://github.com/lumihelia/lumiflow/issues)
-2. 标题写「Feature Request: xxx」
-3. 描述你的想法
-
-### 联系作者
-
-- **Twitter/X**: [@LumiHelia](https://x.com/LumiHelia)
-- **Email**: （通过 GitHub profile 查看）
-
----
-
-## 📚 延伸阅读
-
-### 技术细节
-
-想了解 LumiFlow 的工作原理？
-- 阅读 [README_OPENSOURCE.md](README_OPENSOURCE.md)
-- 查看源代码（完全开源）
-
-### 压缩 Prompt 设计
-
-想了解我们的压缩算法？
-- 阅读 [COMPRESSION_PROMPT_V2.md](COMPRESSION_PROMPT_V2.md)
-- 了解「选择性记忆」的哲学
-
-### 贡献代码
-
-想帮助改进 LumiFlow？
-- Fork 代码仓库
-- 提交 Pull Request
-- 加入开源社区
-
----
-
-## 🎉 开始使用吧！
-
-现在你已经掌握了 LumiFlow 的所有功能。
-
-**快速回顾**：
-1. ✅ 安装扩展
-2. ✅ 选择模式（Auto / Manual）
-3. ✅ 压缩/吸收内容
-4. ✅ 注入到新对话
-5. ✅ 无缝继续工作
-
-**记住**：
-- 💜 完全免费，无限制
-- 🔒 隐私优先，本地存储
-- 🌟 开源透明，社区驱动
-
----
-
-<p align="center">
-  <strong>享受跨 AI 平台的无缝体验！</strong><br>
-  Made with 💜 by <a href="https://x.com/LumiHelia">Helia</a>
-</p>
-
----
-
-## 🆕 v2.3.0 新功能
-
-### 1. **导出功能** 📤
-- 导出为 Markdown (.md 文件)
-- 导出为 JSON (含元数据)
-- 自动时间戳文件名
-- 一键下载备份
-
-**使用方法**:
-- 点击预览区域标题栏的 📄 图标导出 Markdown
-- 点击 📋 图标导出 JSON
-
-### 2. **键盘快捷键** ⌨️
-- `Ctrl+Shift+C` (Mac: `Cmd+Shift+C`) - 快速压缩
-- `Ctrl+Shift+I` (Mac: `Cmd+Shift+I`) - 快速注入
-- `Ctrl+Shift+L` (Mac: `Cmd+Shift+L`) - 打开弹窗
-- 直接在 AI 聊天页面使用
-
-### 3. **深色模式** 🌙
-- 自动检测系统偏好
-- 优雅的深紫色主题
-- 提升夜间使用体验
-- 所有界面元素完整支持
-
-### 4. **压缩率统计** 📊
-- 显示压缩节省: "2 segments, 1,245 chars • 67% saved"
-- 追踪原始 vs 压缩长度
-- 在底部统计栏显示
-
-### 5. **进度倒计时** ⏱️
-- Auto Compress 时显示实时倒计时
-- "等待 AI 响应... (45秒剩余)"
-- 60 秒实时更新
-
-### 6. **用户友好错误** 💬
-- 13 种常见错误的清晰指引
-- 无技术术语
-- 可操作的解决建议
-
-### 7. **撤销功能** 🔄
-- Clear All 后 8 秒撤销窗口
-- 防止误删数据
-- 一键恢复所有 segments
-
-### 8. **API 密钥安全警告** 🔐
-- 首次保存时的安全提示
-- 提醒设置支出限制
-- 强调本地存储
-
-### 9. **分块处理** ⚡
-- Download TXT/MD 长对话时防止界面卡死
-- 显示进度: "处理中... 150/300 条消息"
-- 50 条消息为一组处理
-
-### 10. **平台健康检查** 🔍
-- 自动验证输入框和发送按钮
-- 控制台警告如果平台 UI 改变
-- 帮助调试兼容性问题
-
----
-
-**版本**: v2.4.0
-**最后更新**: 2026-06-21
-**许可证**: MIT
+- 使用的平台；
+- 浏览器与版本；
+- 能够复现问题的步骤；
+- 实际结果与预期结果；
+- 必要的控制台日志或截图。

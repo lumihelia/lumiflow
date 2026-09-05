@@ -1,109 +1,111 @@
-# Privacy Policy for LumiFlow
+# LumiFlow Privacy Policy
 
-**Last Updated**: January 4, 2026
+[中文](PRIVACY.zh-CN.md) · [English](PRIVACY.md)
 
-## Overview
+**Last updated: September 5, 2026**
 
-LumiFlow is committed to protecting your privacy. This policy explains how we handle data in our Chrome extension.
-
-## Data Collection
-
-**LumiFlow does not collect, store, or transmit any user data to external servers.**
-
-All data remains on your local device.
-
-## Local Storage
-
-LumiFlow stores the following data locally in your browser (chrome.storage.local):
-
-- **Conversation segments**: The compressed checkpoints you create
-- **API keys** (if configured): Your personal API keys for Gemini/OpenAI/Anthropic
-- **Settings**: Your preferences (Auto/Manual mode, API provider selection)
-
-**This data never leaves your device.**
-
-## API Usage
-
-When you configure an API key (optional):
-
-- Your API key is stored **locally** in your browser
-- Compression requests are sent **directly** to the respective API provider (Google, OpenAI, or Anthropic)
-- LumiFlow acts as a **client**, not an intermediary
-- We never see or store your API requests
-
-**Important**: Please refer to each API provider's privacy policy:
-- Google Gemini: https://policies.google.com/privacy
-- OpenAI: https://openai.com/policies/privacy-policy
-- Anthropic: https://www.anthropic.com/privacy
-
-## Permissions Explained
-
-LumiFlow requests the following Chrome permissions:
-
-| Permission | Why We Need It |
-|------------|----------------|
-| `storage` | To save your segments and settings locally |
-| `activeTab` | To read the current tab and check if it's a supported AI platform |
-| `host_permissions` | To read conversations and inject compressed context on ChatGPT, Claude, and Gemini domains |
-
-**None of these permissions allow us to access data outside the AI platforms you actively use.**
-
-### Host Permissions Details
-
-| Domain | Purpose |
-|--------|---------|
-| `chatgpt.com`, `chat.openai.com` | Extract conversations from ChatGPT |
-| `claude.ai` | Extract conversations from Claude |
-| `gemini.google.com` | Extract conversations from Gemini |
-| `api.anthropic.com` | Send compression requests (user's API key) |
-| `api.openai.com` | Send compression requests (user's API key) |
-| `generativelanguage.googleapis.com` | Send compression requests (user's API key) |
-
-## No Tracking
-
-LumiFlow does **not** include:
-- ❌ Analytics
-- ❌ Crash reporting
-- ❌ Usage tracking
-- ❌ Cookies
-- ❌ Third-party scripts
-
-## Open Source Transparency
-
-LumiFlow is fully open source under the MIT License.
-
-You can audit the entire codebase at:  
-**https://github.com/lumihelia/lumiflow**
-
-## Data Deletion
-
-To delete all LumiFlow data:
-
-1. Click the LumiFlow icon
-2. Click Settings ⚙️
-3. Click "Clear All" to remove segments
-4. Uninstall the extension to remove all local storage
-
-## Changes to This Policy
-
-If we make any changes to our data practices, we will update this policy and the version number in our GitHub repository.
-
-## Contact
-
-For privacy concerns or questions:
-- **GitHub Issues**: https://github.com/lumihelia/lumiflow/issues
-- **Twitter/X**: [@LumiHelia](https://x.com/LumiHelia)
+This policy describes how the current LumiFlow Chrome extension handles data.
 
 ## Summary
 
-**In plain English**:
-- We don't have servers, so we literally can't access your data
-- Everything stays on your computer
-- Your API keys (if you add them) are stored locally, not sent to us
-- We don't track you
-- The code is open source, so you can verify all of this yourself
+LumiFlow currently has no hosted backend, account system, analytics, advertising SDK, or usage tracking.
 
----
+Most LumiFlow data stays in your browser. If you enable API compression, the conversation content needed for that compression is sent directly from the extension to the API provider you selected. That request does not pass through a LumiFlow-operated server.
 
-**LumiFlow Team**  
-January 2026
+## Data stored locally
+
+LumiFlow uses Chrome extension storage to keep:
+
+- checkpoint segments;
+- API settings;
+- your API key, if you save one;
+- preferences such as Auto / Manual mode.
+
+These items are stored in `chrome.storage.local` for the extension.
+
+## Data sent to third parties
+
+### API compression
+
+If you enable API compression and configure Gemini, OpenAI, or Anthropic:
+
+- the extension sends the material required for compression directly to the selected provider;
+- your API key is used to authenticate that request;
+- LumiFlow does not proxy the request through its own backend because it currently has no hosted backend;
+- the selected provider's privacy policy, retention rules, pricing, and service terms apply to that request.
+
+Provider policies:
+
+- Google: https://policies.google.com/privacy
+- OpenAI: https://openai.com/policies/privacy-policy
+- Anthropic: https://www.anthropic.com/privacy
+
+### Conversation extraction
+
+LumiFlow reads conversations from supported AI services so it can export them or create checkpoints.
+
+For ChatGPT and Claude, the extension may read the current conversation from platform data used by the web application and can fall back to page-based extraction. Gemini uses page-based extraction.
+
+This access happens in the browser session where you are already using the AI service. LumiFlow does not send those extracted conversations to a LumiFlow server.
+
+If API compression is enabled, the subset of conversation content needed for compression is then sent to the provider you selected, as described above.
+
+## Data LumiFlow does not currently collect
+
+The current extension does not include:
+
+- LumiFlow analytics;
+- usage tracking;
+- advertising trackers;
+- crash-reporting SDKs;
+- a LumiFlow account database;
+- a LumiFlow-hosted conversation store.
+
+## Permissions
+
+The current Manifest V3 extension requests:
+
+| Permission / host access | Purpose |
+| --- | --- |
+| `storage` | Save segments, API settings, and preferences locally |
+| `activeTab` | Interact with the supported AI page you are actively using |
+| `chatgpt.com`, `chat.openai.com` | Read and inject context on ChatGPT |
+| `claude.ai` | Read and inject context on Claude |
+| `gemini.google.com` | Read and inject context on Gemini |
+| `api.openai.com` | Send user-authorized OpenAI compression requests |
+| `api.anthropic.com` | Send user-authorized Anthropic compression requests |
+| `generativelanguage.googleapis.com` | Send user-authorized Gemini compression requests |
+
+The source of truth for current permissions is [`manifest.json`](manifest.json).
+
+## API keys
+
+If you save an API key in LumiFlow, it is stored in the extension's local Chrome storage.
+
+The key is used only when the extension makes a request to the API provider you selected. LumiFlow currently has no server that receives or stores your API key.
+
+As with any locally stored credential, anyone or any software with sufficient access to your browser profile or device may potentially access local extension data. Use API keys with appropriate provider-side spending limits and rotation practices.
+
+## Deleting local data
+
+You can remove checkpoint segments from the extension interface.
+
+To remove all LumiFlow local extension data, uninstall LumiFlow from Chrome. Chrome removes the extension's local storage as part of uninstalling the extension.
+
+You can also remove or replace a saved API key from LumiFlow settings.
+
+## Open source
+
+LumiFlow is open source under the MIT License. You can inspect the current implementation here:
+
+https://github.com/lumihelia/lumiflow
+
+## Changes to this policy
+
+If LumiFlow's data flow changes — for example, if a hosted service, analytics system, account layer, or new third-party integration is added — this policy should be updated together with the relevant code and store disclosure.
+
+## Contact
+
+Privacy questions and issues can be filed at:
+
+https://github.com/lumihelia/lumiflow/issues
