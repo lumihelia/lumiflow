@@ -1,575 +1,197 @@
-# 📖 LumiFlow User Guide
+# LumiFlow User Guide
 
-Welcome to LumiFlow! This guide will get you up and running in 5 minutes.
+[中文](USER_GUIDE_CN.md) · [English](USER_GUIDE_EN.md)
 
----
+For **LumiFlow v2.4.0**.
 
-## 🚀 Quick Start
+LumiFlow currently supports two main paths:
 
-### Step 1: Install the Extension
+1. Export a complete conversation as TXT or Markdown.
+2. Turn the context that still matters into a checkpoint and inject it into a new conversation.
 
-1. **Download LumiFlow**
-   - Download the latest `LumiFlow.zip` from [GitHub Releases](https://github.com/lumihelia/lumiflow/releases)
-   - Extract it to any folder
+## Installation
 
-2. **Load into Chrome**
-   - Open Chrome browser
-   - Visit `chrome://extensions/`
-   - Toggle "Developer mode" (top right)
-   - Click "Load unpacked"
-   - Select the extracted `LumiFlow` folder
+### Chrome Web Store
 
-3. **Pin the Extension (Recommended)**
-   - Click the puzzle icon 🧩 in the browser toolbar
-   - Find LumiFlow and click the pin icon 📌
-   - Now you can access LumiFlow anytime
+Install directly from [LumiFlow - Chrome Web Store](https://chromewebstore.google.com/detail/lumiflow/onekhnkogijnmpddmceomhibhenhffaf).
 
-✅ **Installation Complete!**
+After installation, pin LumiFlow to the browser toolbar if you want quick access from ChatGPT, Claude, and Gemini conversation pages.
 
----
+### Load from source
 
-## 🎯 Core Concept
-
-### What Problem Does LumiFlow Solve?
-
-**Scenario A**: You've had 100+ messages with ChatGPT, the conversation is too long, and the AI starts "forgetting" things
-→ LumiFlow compresses it into essentials, so you can start fresh
-
-**Scenario B**: You're stuck in Claude and want to try ChatGPT, but don't want to re-explain everything
-→ LumiFlow migrates your context seamlessly
-
-**Scenario C**: You switch between multiple AI platforms and keep repeating the project background
-→ LumiFlow lets AIs hand off to each other
-
----
-
-## 🎮 Two Modes
-
-LumiFlow has two working modes - choose based on your needs:
-
-### Mode 1: Auto Mode - Recommended for Beginners
-
-**Best For**: Quick compression of entire conversations
-
-**Workflow**:
-```
-1. On ChatGPT/Claude/Gemini conversation page
-2. Click LumiFlow icon
-3. Click "COMPRESS" button
-4. Wait 5-10 seconds (AI is compressing)
-5. Done! Compressed content is saved
+```bash
+git clone https://github.com/lumihelia/lumiflow.git
+cd lumiflow
 ```
 
-**Pros**:
-- ✅ One-click, super fast
-- ✅ AI automatically extracts key points
-- ✅ Perfect for long conversations (100+ messages)
+Open `chrome://extensions/`, enable **Developer mode**, click **Load unpacked**, and select the repository folder.
 
-**Cons**:
-- ⚠️ Requires API configuration (see below)
-- ⚠️ Takes a few seconds to compress
+## Supported platforms
 
----
+- ChatGPT: `chatgpt.com` / `chat.openai.com`
+- Claude: `claude.ai`
+- Gemini: `gemini.google.com`
 
-### Mode 2: Manual Mode - Recommended for Advanced Users
+Use LumiFlow on an actual conversation page. Home pages, settings pages, and other non-conversation routes may not contain extractable chat content.
 
-**Best For**: Precise control over what to keep
+## Workflow 1: Export the full conversation
 
-**Workflow**:
-```
-1. Click LumiFlow icon
-2. Switch to "Manual Mode"
-3. Select important content on the page (drag with mouse)
-4. Click "ABSORB" button
-5. Repeat steps 3-4 for more content
-6. Done! All selected content becomes cards
-```
+Use either:
 
-**Pros**:
-- ✅ Precise control (only keep what you select)
-- ✅ No API needed
-- ✅ Instant (no delay)
+- `DOWNLOAD TXT`
+- `DOWNLOAD MD`
 
-**Cons**:
-- ⚠️ Requires manual selection multiple times
-- ⚠️ Better suited for shorter conversations
+The exported file keeps speaker labels such as User, ChatGPT, Claude, and Gemini.
 
----
+This workflow:
 
-## 📦 Managing Segments (Content Cards)
+- does not create a segment;
+- does not compress the conversation;
+- does not require a model API key;
+- is useful for archiving, reading, backups, or downstream processing.
 
-In either mode, compressed/absorbed content becomes "Segments" (cards).
+For ChatGPT and Claude, LumiFlow first tries to read the current conversation from the platform data used by the web app. If that path is unavailable, it falls back to loading and extracting the page. Gemini uses page extraction.
 
-### What are Segments?
+If an export is obviously incomplete, refresh the conversation page and retry. If the problem persists, see [Troubleshooting](TROUBLESHOOTING.md).
 
-Each Segment is a card representing a piece of important content.
+## Workflow 2: Create and migrate a checkpoint
 
-**You can**:
-- 📝 **Edit**: Click the ✎ button on the right
-- 🗑️ **Delete**: Click the × button on the right
-- 🔄 **Reorder**: Drag the ⋮⋮ button to rearrange
-- 👁️ **Expand/Collapse**: Click anywhere on the card
+A checkpoint stores what the next conversation still needs to know. It contains one or more segments.
 
-### Segments Preview Area
+### Auto Mode: compress the full conversation
 
-```
-┌─────────────────────────────────┐
-│ Checkpoint Segments          × │ ← Clear all
-├─────────────────────────────────┤
-│ ┌───────────────────────┐       │
-│ │ Segment 1  ⋮⋮ ✎ ×   │       │
-│ ├───────────────────────┤       │
-│ │ Discussion about...   │       │
-│ └───────────────────────┘       │
-│                                 │
-│ ┌───────────────────────┐       │
-│ │ Segment 2  ⋮⋮ ✎ ×   │       │
-│ ├───────────────────────┤       │
-│ │ Current progress...   │       │
-│ └───────────────────────┘       │
-│                                 │
-│ 2 segments, 1500 characters     │
-└─────────────────────────────────┘
-```
+Use Auto Mode when a conversation is long and you want to quickly extract goals, current state, decisions, constraints, examples, failed attempts, and next steps.
 
----
+Steps:
 
-## 🚀 Inject to New Conversation (INJECT)
+1. Open LumiFlow on a ChatGPT / Claude / Gemini conversation page.
+2. Open Settings.
+3. Enable **API Compression**.
+4. Choose Gemini, OpenAI, or Anthropic.
+5. Enter your own API key and save it.
+6. Return to the main view and keep Auto Mode enabled.
+7. Click `COMPRESS`.
+8. The result appears in the Checkpoint Segments area.
 
-When you're ready to switch conversations:
+Auto Mode sends the material needed for compression directly to the API provider you select. Your API key and LumiFlow settings are stored locally in the browser. The provider's own quota, pricing, and privacy terms still apply.
 
-### Steps:
+### Manual Mode: choose what moves forward
 
-1. **Open a New Conversation**
-   - Can be a new chat on the same AI platform
-   - Or a different AI platform (ChatGPT → Claude)
+Use Manual Mode when you only want to keep specific material, want precise control over the checkpoint, or do not want to use a third-party compression API.
 
-2. **Click INJECT Button**
-   - The compressed content will appear in the input box
+Steps:
 
-3. **Click Send**
-   - The AI will read the context and continue seamlessly
+1. Open LumiFlow.
+2. Switch to Manual Mode.
+3. Select the text you want to preserve on the current conversation page.
+4. Click `ABSORB`.
+5. Select more material and repeat as needed.
 
-### Smart Compression
+Each absorbed selection becomes a segment.
 
-If your Segments total length exceeds 800 characters, LumiFlow will:
-- Check if API is configured
-- **With API**: Auto-compress again (10:1 compression ratio)
-- **Without API**: Show a prompt (you can choose to continue or cancel)
+## Manage checkpoint segments
 
----
+The Checkpoint area lets you refine the context before moving it forward:
 
-## ⚙️ Configure API (Optional)
+- edit a segment;
+- delete a segment;
+- drag to reorder;
+- expand / collapse;
+- clear all segments;
+- export the checkpoint as Markdown;
+- export the checkpoint as JSON.
 
-With API configured, you can use Auto Mode and smart compression.
+Editing is an important part of the workflow. Auto Mode output is still yours to revise: remove noise, add missing constraints, change wording, and decide what belongs in the next conversation.
 
-### Supported API Providers
+## Inject the checkpoint into a new conversation
 
-- **Google Gemini** (Recommended: generous free tier)
-- **OpenAI** (ChatGPT's API)
-- **Anthropic** (Claude's API)
+1. Open a new ChatGPT / Claude / Gemini conversation.
+2. Open LumiFlow.
+3. Check that the segments are ready.
+4. Click `INJECT`.
+5. LumiFlow places the checkpoint into the current input field.
+6. Review it and decide whether to send it.
 
-### Configuration Steps
+If a checkpoint is long, LumiFlow may offer another compression step. With an API configured, you can compress again. Without one, you can continue with the existing content or cancel.
 
-1. **Click Settings Icon** ⚙️ (top right)
+## API settings
 
-2. **Toggle "Enable API Compression"**
+LumiFlow supports:
 
-3. **Select API Provider**
-   - Recommended for beginners: Gemini (most free quota)
+- Google Gemini API
+- OpenAI API
+- Anthropic API
 
-4. **Enter API Key**
-   - Gemini: Get it from [Google AI Studio](https://aistudio.google.com/app/apikey)
-   - OpenAI: Get it from [OpenAI Platform](https://platform.openai.com/api-keys)
-   - Anthropic: Get it from [Anthropic Console](https://console.anthropic.com/)
+API compression is optional. Manual Mode, full conversation export, and local segment management do not require a model API.
 
-5. **Click "Save API Settings"**
+### Cost
 
-✅ **Configuration Complete! You can now use Auto Mode**
+LumiFlow itself has no subscription and does not impose a count-based usage limit.
 
-### Privacy Note
+API compression uses your own third-party API key, so actual cost, free quota, and rate limits are controlled by the provider.
 
-- ✅ API Key is only stored in your browser locally
-- ✅ Never sent to our servers (we don't have servers)
-- ✅ Only used to call the respective API during compression
+### API keys
 
----
+API keys are stored in `chrome.storage.local`. LumiFlow currently has no hosted backend; API requests go directly from the extension to the provider you selected.
 
-## 📋 Complete Usage Examples
+See [Privacy Policy](PRIVACY.md) for the complete data boundary.
 
-### Example 1: Same Platform, New Chat (Conversation Too Long)
+## Keyboard shortcuts
 
-```
-Scenario: 200+ messages in ChatGPT, AI starts giving irrelevant answers
+Default shortcuts:
 
-1. Click LumiFlow icon
-2. Mode: Auto Mode
-3. Click "COMPRESS"
-4. Wait 5 seconds (compressing)
-5. Click "New chat" in ChatGPT (top right)
-6. Click LumiFlow icon
-7. Click "INJECT"
-8. Click "Send"
-9. ✅ AI continues the previous topic, no more confusion
-```
+| Action | Windows / Linux | macOS |
+| --- | --- | --- |
+| COMPRESS | `Ctrl+Shift+C` | `Command+Shift+C` |
+| INJECT | `Ctrl+Shift+I` | `Command+Shift+I` |
+| Open extension | `Ctrl+Shift+L` | `Command+Shift+L` |
 
----
+Chrome or another extension may already use the same shortcut. If a shortcut does not respond, check Chrome's extension shortcut settings for conflicts.
 
-### Example 2: Cross-Platform Migration (ChatGPT → Claude)
+## Common issues
 
-```
-Scenario: Stuck in ChatGPT, want to try Claude
+### COMPRESS does not work
 
-1. On ChatGPT conversation page
-2. Click LumiFlow icon
-3. Switch to "Manual Mode"
-4. Select the project background section
-5. Click "ABSORB"
-6. Select the current problem section
-7. Click "ABSORB"
-8. Select attempted solutions
-9. Click "ABSORB"
-10. Open Claude.ai, start new chat
-11. Click LumiFlow icon
-12. Click "INJECT"
-13. Click "Send"
-14. ✅ Claude receives full context, starts helping immediately
-```
+Check that:
 
----
+- you are on a supported AI conversation page;
+- API compression is enabled;
+- the provider and API key are saved;
+- the provider still has available quota;
+- your network can reach the selected API.
 
-### Example 3: Multiple Selective Absorbs (Manual Mode)
+If you need to keep moving, switch to Manual Mode and use `ABSORB` to build the checkpoint yourself.
 
-```
-Scenario: Long conversation, only want to keep specific parts
+### INJECT does not place content in the input field
 
-1. Switch to Manual Mode
-2. Browse conversation, find first important part
-3. Drag to select → Click "ABSORB"
-4. Scroll down, find second part
-5. Drag to select → Click "ABSORB"
-6. Repeat until all important parts are selected
-7. Preview area shows multiple Segment cards
-8. Click cards to edit, delete, or reorder
-9. When satisfied, go to new conversation and click "INJECT"
-```
+Click the target AI input field first so it has focus, then try `INJECT` again. If the page was just refreshed, allow the page and extension content script to finish loading before retrying.
 
----
+### Full export only contains part of the conversation
 
-## 🎨 Advanced Tips
+Refresh the conversation page and retry. On long chats, a fallback extraction path may need the history to load first. If the issue persists, capture the platform, browser version, and relevant console logs before opening an issue.
 
-### Tip 1: Edit Segments
+See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for more steps.
 
-Found a segment not quite right after compression?
-- Click the ✎ button
-- Edit directly in the card
-- Click ✓ to save
+## Local data and deletion
 
-### Tip 2: Reorder Segments
+LumiFlow stores these items locally in the browser:
 
-Want to change the order?
-- Hold down the ⋮⋮ button
-- Drag to new position
-- Release mouse
+- checkpoint segments;
+- API settings and API key;
+- preferences such as Auto / Manual mode.
 
-### Tip 3: Clear All Segments
+Clearing Checkpoint Segments removes the saved segments. Uninstalling the extension removes its local extension storage.
 
-Want to start fresh?
-- Click × (Clear All) in the top right
-- Confirm
-- All Segments are cleared
+## Getting help
 
-### Tip 4: Download TXT / Download MD (Full Export)
+For bugs, platform compatibility problems, or feature requests:
 
-Want the entire conversation as a file?
-- Click "DOWNLOAD TXT" or "DOWNLOAD MD"
-- The full conversation is scraped and saved directly as a file — no clipboard step, no segment created
-- Each line is labeled by speaker: "User said:" / "ChatGPT said:" / "Claude said:" / "Gemini said:" (Markdown export bolds the speaker name instead)
+https://github.com/lumihelia/lumiflow/issues
 
----
+When reporting a problem, include when possible:
 
-## ⚠️ Common Issues
-
-### Q1: Button Click Has No Effect?
-
-**Solution**:
-1. Refresh the page (F5)
-2. Click the button again
-3. If still not working, check if you're on a supported platform (ChatGPT/Claude/Gemini)
-
----
-
-### Q2: Auto Mode Keeps Loading?
-
-**Possible Reasons**:
-- AI platform responding slowly
-- API configuration error
-
-**Solution**:
-1. Wait 30 seconds
-2. If timeout, switch to Manual Mode
-3. Manually send the compression prompt, then select AI's response and click ABSORB
-
----
-
-### Q3: Content Doesn't Appear in Input Box After INJECT?
-
-**Solution**:
-1. First click the input box (to focus it)
-2. Then click INJECT
-3. If still not working, content is auto-copied to clipboard, manually paste (Ctrl+V / Cmd+V)
-
----
-
-### Q4: Is My API Key Safe?
-
-**Answer**:
-- ✅ Completely safe
-- API Key is only stored in your browser locally (chrome.storage.local)
-- Never uploaded to any server
-- Only used to call official APIs during compression
-
-**Verification**:
-- Code is fully open source, you can audit it
-- Check in Browser DevTools → Application → Storage → Local Storage
-
----
-
-### Q5: Why Does Download TXT/MD Only Capture Part of the Conversation?
-
-**Fixed!**
-- ChatGPT and Claude now read the conversation directly from the platform's own backend (the same data their web UI renders from), so the export is complete regardless of scroll position
-- If that path is unavailable (e.g. logged out, team workspace account), it automatically falls back to scrolling the page to load the full history before scraping
-- If issues persist, refresh the page and retry
-
----
-
-### Q6: Which AI Platforms Are Supported?
-
-**Currently Supported**:
-- ✅ ChatGPT (chat.openai.com, chatgpt.com)
-- ✅ Claude (claude.ai)
-- ✅ Gemini (gemini.google.com)
-
-**Future Plans**:
-- 🔜 Perplexity
-- 🔜 You.com
-- 🔜 Other platforms (suggestions welcome)
-
----
-
-### Q7: Not Satisfied with Compression Quality?
-
-**Method A**: Edit Segments
-- Click the ✎ button
-- Manually adjust content
-
-**Method B**: Switch to Manual Mode
-- Full manual control over what to keep
-
-**Method C**: Customize Prompt (Advanced)
-- Edit `DEFAULT_COMPRESSION_PROMPT` in `content.js`
-- Reload extension
-
----
-
-### Q8: Are There Usage Limits?
-
-**No!**
-- ✅ Unlimited ABSORB
-- ✅ Unlimited COMPRESS
-- ✅ Unlimited INJECT
-- ✅ Completely free
-
----
-
-## 🎯 Best Practices
-
-### 1. When to Use Auto Mode?
-
-✅ **Recommended Scenarios**:
-- Very long conversations (100+ messages)
-- Quick compression needed
-- Trust AI's judgment
-
-❌ **Not Recommended**:
-- Conversation has lots of irrelevant content
-- Need precise control over what to keep
-
----
-
-### 2. When to Use Manual Mode?
-
-✅ **Recommended Scenarios**:
-- Only want to keep specific parts
-- Conversation contains sensitive info (don't want to use API)
-- Want full control
-
-❌ **Not Recommended**:
-- Conversation too long, manual selection is tedious
-
----
-
-### 3. Compression Ratio Recommendations
-
-**Target**:
-- Original conversation: 10,000 words
-- After compression: ~1,000 words (10:1 compression ratio)
-
-**Experience**:
-- If compressed result > 2,000 words, might not be refined enough
-- If compressed result < 500 words, might have lost important info
-
----
-
-### 4. Cross-Platform Migration Strategies
-
-**ChatGPT → Claude**:
-- Best for: Deeper analysis, long-text reasoning
-- Compression focus: Keep facts, data, conclusions
-
-**Claude → ChatGPT**:
-- Best for: Code generation, rapid iteration
-- Compression focus: Keep requirements, tech stack, constraints
-
-**Claude/ChatGPT → Gemini**:
-- Best for: Search, multimodal (images)
-- Compression focus: Keep questions, attempted solutions
-
----
-
-## 🆘 Need Help?
-
-### Report Issues
-
-Found a bug?
-1. Visit [GitHub Issues](https://github.com/lumihelia/lumiflow/issues)
-2. Click "New Issue"
-3. Describe the problem (screenshots help)
-
-### Feature Requests
-
-Have a great idea?
-1. Visit [GitHub Issues](https://github.com/lumihelia/lumiflow/issues)
-2. Title: "Feature Request: xxx"
-3. Describe your idea
-
-### Contact Author
-
-- **Twitter/X**: [@LumiHelia](https://x.com/LumiHelia)
-- **Email**: (Check GitHub profile)
-
----
-
-## 📚 Further Reading
-
-### Technical Details
-
-Want to understand how LumiFlow works?
-- Read [README_OPENSOURCE.md](README_OPENSOURCE.md)
-- Check the source code (fully open source)
-
-### Compression Prompt Design
-
-Curious about our compression algorithm?
-- Read [COMPRESSION_PROMPT_V2.md](COMPRESSION_PROMPT_V2.md)
-- Learn the "selective memory" philosophy
-
-### Contribute Code
-
-Want to help improve LumiFlow?
-- Fork the repository
-- Submit Pull Requests
-- Join the open source community
-
----
-
-## 🎉 Start Using LumiFlow!
-
-You now know all of LumiFlow's features.
-
-**Quick Recap**:
-1. ✅ Install extension
-2. ✅ Choose mode (Auto / Manual)
-3. ✅ Compress/absorb content
-4. ✅ Inject to new conversation
-5. ✅ Continue working seamlessly
-
-**Remember**:
-- 💜 Completely free, no limits
-- 🔒 Privacy-first, local storage
-- 🌟 Open source, community-driven
-
----
-
-<p align="center">
-  <strong>Enjoy Seamless Cross-Platform AI Experience!</strong><br>
-  Made with 💜 by <a href="https://x.com/LumiHelia">Helia</a>
-</p>
-
----
-
-## 🆕 What's New in v2.3.0
-
-### 1. **Export Feature** 📤
-- Export as Markdown (.md files)
-- Export as JSON (with metadata)
-- Automatic timestamped filenames
-- One-click download backup
-
-**How to use**:
-- Click the 📄 icon in preview area header to export as Markdown
-- Click the 📋 icon to export as JSON
-
-### 2. **Keyboard Shortcuts** ⌨️
-- `Ctrl+Shift+C` (Mac: `Cmd+Shift+C`) - Quick compress
-- `Ctrl+Shift+I` (Mac: `Cmd+Shift+I`) - Quick inject
-- `Ctrl+Shift+L` (Mac: `Cmd+Shift+L`) - Open popup
-- Works directly from AI chat pages
-
-### 3. **Dark Mode** 🌙
-- Auto-detects system preference
-- Beautiful deep purple theme
-- Enhanced night-time experience
-- Full support across all UI elements
-
-### 4. **Compression Statistics** 📊
-- Shows compression savings: "2 segments, 1,245 chars • 67% saved"
-- Tracks original vs compressed length
-- Displayed in stats footer
-
-### 5. **Progress Countdown** ⏱️
-- Real-time countdown during Auto Compress
-- "Waiting for AI response... (45s remaining)"
-- 60-second live updates
-
-### 6. **User-Friendly Errors** 💬
-- Clear guidance for 13 common errors
-- No technical jargon
-- Actionable solution suggestions
-
-### 7. **Undo Function** 🔄
-- 8-second undo window after Clear All
-- Prevents accidental data loss
-- One-click restore all segments
-
-### 8. **API Key Security Warning** 🔐
-- Security tips on first-time save
-- Reminds about spending limits
-- Emphasizes local-only storage
-
-### 9. **Chunked Processing** ⚡
-- Prevents UI freeze on long conversations in Download TXT/MD
-- Shows progress: "Processing... 150/300 messages"
-- Processes in 50-message chunks
-
-### 10. **Platform Health Check** 🔍
-- Auto-validates input field and send button
-- Console warnings if platform UI changed
-- Helps debug compatibility issues
-
----
-
-**Version**: v2.4.0
-**Last Updated**: 2026-06-21
-**License**: MIT
+- AI platform;
+- browser and version;
+- reproducible steps;
+- expected and actual behavior;
+- relevant console logs or screenshots.
