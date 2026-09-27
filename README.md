@@ -8,7 +8,7 @@
 [![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-brightgreen.svg)](https://chromewebstore.google.com/detail/lumiflow/onekhnkogijnmpddmceomhibhenhffaf)
 [![License](https://img.shields.io/badge/license-MIT-purple.svg)](LICENSE)
 
-LumiFlow 是一个面向 ChatGPT、Claude 和 Gemini 的 Chrome 扩展。它把对话当作可以整理、保存和迁移的上下文，让长对话结束、模型切换或新会话开始时，重要信息仍然可以继续流动。
+LumiFlow 是一个面向 ChatGPT、Claude、Gemini 和 DeepSeek 的 Chrome 扩展。它把对话当作可以整理、保存和迁移的上下文，让长对话结束、模型切换或新会话开始时，重要信息仍然可以继续流动。
 
 目前有两条主要工作流：
 
@@ -20,7 +20,7 @@ LumiFlow 是一个面向 ChatGPT、Claude 和 Gemini 的 Chrome 扩展。它把�
 ## 适合什么场景
 
 - 一个对话已经很长，准备开新会话继续工作。
-- 同一个项目需要在 ChatGPT、Claude 和 Gemini 之间切换。
+- 同一个项目需要在 ChatGPT、Claude、Gemini 和 DeepSeek 之间切换。
 - 想保留完整聊天记录，同时又不想把整段历史重新塞给下一个模型。
 - 想自己挑选、编辑和排序需要带走的上下文。
 
@@ -33,7 +33,7 @@ LumiFlow 是一个面向 ChatGPT、Claude 和 Gemini 的 Chrome 扩展。它把�
 - `DOWNLOAD TXT`
 - `DOWNLOAD MD`
 
-LumiFlow 会导出完整对话，并给每条内容加上 User / ChatGPT / Claude / Gemini 等说话者标签。
+LumiFlow 会导出完整对话，并给每条内容加上 User / ChatGPT / Claude / Gemini / DeepSeek 等说话者标签。
 
 ChatGPT 和 Claude 会优先从平台当前会话的数据接口读取完整对话；如果这条路径不可用，LumiFlow 会回退到页面加载与提取。Gemini 通过页面提取完成导出。DeepSeek 优先读取网页当前会话的数据接口（只导出正文，不含“深度思考”过程），失败时回退到页面提取。
 
@@ -55,7 +55,7 @@ Checkpoint 用来保存“下一段对话仍然需要知道什么”。
 
 适合：只想保留特定片段、希望自己控制上下文、不想使用第三方压缩 API。
 
-生成的 segments 可以继续编辑、删除和排序。准备好之后，在新的 ChatGPT / Claude / Gemini 会话中点击 `INJECT`，把 checkpoint 放进输入框，再由你决定是否发送。
+生成的 segments 可以继续编辑、删除和排序。准备好之后，在新的 ChatGPT / Claude / Gemini / DeepSeek 会话中点击 `INJECT`，把 checkpoint 放进输入框，再由你决定是否发送。
 
 ## 核心能力
 

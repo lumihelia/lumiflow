@@ -15,7 +15,7 @@ LumiFlow 目前有两条主要路径：
 
 直接安装：[LumiFlow - Chrome Web Store](https://chromewebstore.google.com/detail/lumiflow/onekhnkogijnmpddmceomhibhenhffaf)
 
-安装后可以把 LumiFlow 固定到浏览器工具栏，方便在 ChatGPT、Claude 和 Gemini 对话页随时打开。
+安装后可以把 LumiFlow 固定到浏览器工具栏，方便在 ChatGPT、Claude、Gemini 和 DeepSeek 对话页随时打开。
 
 ### 从源码加载
 
@@ -42,7 +42,7 @@ cd lumiflow
 - `DOWNLOAD TXT`
 - `DOWNLOAD MD`
 
-导出文件会保留说话者标签，例如 User、ChatGPT、Claude、Gemini。
+导出文件会保留说话者标签，例如 User、ChatGPT、Claude、Gemini、DeepSeek。
 
 这个流程：
 
@@ -51,7 +51,7 @@ cd lumiflow
 - 不需要模型 API key；
 - 适合归档、阅读、备份或交给其他工具继续处理。
 
-ChatGPT 和 Claude 会优先读取当前平台用于渲染会话的数据；如果这条路径不可用，LumiFlow 会回退到页面加载与提取。Gemini 通过页面提取完成导出。
+ChatGPT 和 Claude 会优先读取当前平台用于渲染会话的数据；如果这条路径不可用，LumiFlow 会回退到页面加载与提取。Gemini 通过页面提取完成导出。DeepSeek 优先读取网页当前会话的数据（只导出正文，不含深度思考过程），失败时回退到页面提取。
 
 如果导出内容明显不完整，先刷新当前对话页再重试；仍然存在问题时参考 [故障排查](TROUBLESHOOTING.zh-CN.md)。
 
@@ -65,7 +65,7 @@ Checkpoint 保存的是“下一段对话仍然需要知道什么”。它由一
 
 使用步骤：
 
-1. 在 ChatGPT / Claude / Gemini 的对话页面打开 LumiFlow。
+1. 在 ChatGPT / Claude / Gemini / DeepSeek 的对话页面打开 LumiFlow。
 2. 点击右上角设置按钮。
 3. 开启 **Enable API Compression**。
 4. 选择 Gemini、OpenAI 或 Anthropic。
@@ -106,7 +106,7 @@ Checkpoint 区域允许你继续整理准备带走的上下文：
 
 ## 把 Checkpoint 注入新会话
 
-1. 打开一个新的 ChatGPT / Claude / Gemini 对话。
+1. 打开一个新的 ChatGPT / Claude / Gemini / DeepSeek 对话。
 2. 打开 LumiFlow。
 3. 确认 segments 已经整理好。
 4. 点击 `INJECT`。

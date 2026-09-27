@@ -8,7 +8,7 @@ Carry an AI conversation into the next one.
 [![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-brightgreen.svg)](https://chromewebstore.google.com/detail/lumiflow/onekhnkogijnmpddmceomhibhenhffaf)
 [![License](https://img.shields.io/badge/license-MIT-purple.svg)](LICENSE)
 
-LumiFlow is a Chrome extension for ChatGPT, Claude, and Gemini. It treats conversations as context that can be organized, saved, and moved forward when a chat gets too long, you switch models, or you start a new session.
+LumiFlow is a Chrome extension for ChatGPT, Claude, Gemini, and DeepSeek. It treats conversations as context that can be organized, saved, and moved forward when a chat gets too long, you switch models, or you start a new session.
 
 It currently supports two main workflows:
 
@@ -20,7 +20,7 @@ Current version: **v2.5.0**.
 ## When it is useful
 
 - A conversation has become long and you want to continue in a fresh chat.
-- The same project moves between ChatGPT, Claude, and Gemini.
+- The same project moves between ChatGPT, Claude, Gemini, and DeepSeek.
 - You want a complete archive without pasting the entire history into the next model.
 - You want to choose, edit, and reorder exactly which context moves forward.
 
@@ -33,7 +33,7 @@ Open LumiFlow on a supported conversation page and click:
 - `DOWNLOAD TXT`
 - `DOWNLOAD MD`
 
-The export keeps speaker labels such as User / ChatGPT / Claude / Gemini.
+The export keeps speaker labels such as User / ChatGPT / Claude / Gemini / DeepSeek.
 
 For ChatGPT and Claude, LumiFlow first tries to read the current conversation from the platform data used by the web app. If that path is unavailable, it falls back to loading and extracting the page. Gemini is exported through page extraction. DeepSeek first reads the conversation data used by the web app (final answers only, without the "DeepThink" reasoning) and falls back to page extraction.
 
@@ -55,7 +55,7 @@ Switch to Manual Mode, select the material you want to preserve on the page, the
 
 Use it when you want precise control over context or do not want to use a third-party compression API.
 
-Segments can be edited, deleted, and reordered. When the checkpoint is ready, open a new ChatGPT / Claude / Gemini conversation and click `INJECT`. LumiFlow places the checkpoint into the input field; you remain in control of whether to send it.
+Segments can be edited, deleted, and reordered. When the checkpoint is ready, open a new ChatGPT / Claude / Gemini / DeepSeek conversation and click `INJECT`. LumiFlow places the checkpoint into the input field; you remain in control of whether to send it.
 
 ## Current capabilities
 
