@@ -2,7 +2,7 @@
 
 [中文](USER_GUIDE_CN.md) · [English](USER_GUIDE_EN.md)
 
-For **LumiFlow v2.4.0**.
+For **LumiFlow v2.5.0**.
 
 LumiFlow currently supports two main paths:
 
@@ -31,6 +31,7 @@ Open `chrome://extensions/`, enable **Developer mode**, click **Load unpacked**,
 - ChatGPT: `chatgpt.com` / `chat.openai.com`
 - Claude: `claude.ai`
 - Gemini: `gemini.google.com`
+- DeepSeek: `chat.deepseek.com`
 
 Use LumiFlow on an actual conversation page. Home pages, settings pages, and other non-conversation routes may not contain extractable chat content.
 

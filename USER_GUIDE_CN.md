@@ -2,7 +2,7 @@
 
 [中文](USER_GUIDE_CN.md) · [English](USER_GUIDE_EN.md)
 
-适用于 **LumiFlow v2.4.0**。
+适用于 **LumiFlow v2.5.0**。
 
 LumiFlow 目前有两条主要路径：
 
@@ -31,6 +31,7 @@ cd lumiflow
 - ChatGPT：`chatgpt.com` / `chat.openai.com`
 - Claude：`claude.ai`
 - Gemini：`gemini.google.com`
+- DeepSeek：`chat.deepseek.com`
 
 需要在实际对话页面中使用，主页、设置页或其他非对话页面可能无法提取内容。
 

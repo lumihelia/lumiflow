@@ -4,7 +4,7 @@
 
 [中文](README.md) · [English](README.en.md)
 
-[![Version](https://img.shields.io/badge/version-2.4.0-blue.svg)](manifest.json)
+[![Version](https://img.shields.io/badge/version-2.5.0-blue.svg)](manifest.json)
 [![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-brightgreen.svg)](https://chromewebstore.google.com/detail/lumiflow/onekhnkogijnmpddmceomhibhenhffaf)
 [![License](https://img.shields.io/badge/license-MIT-purple.svg)](LICENSE)
 
@@ -15,7 +15,7 @@ LumiFlow 是一个面向 ChatGPT、Claude 和 Gemini 的 Chrome 扩展。它把�
 - **完整对话导出**：把当前对话直接下载为 TXT 或 Markdown，并保留说话者标签，适合归档、阅读和后续处理。
 - **Checkpoint 上下文迁移**：把真正需要延续的目标、决定、约束、例子和进度整理成可编辑的 segments，再注入新的 AI 会话。
 
-当前版本：**v2.4.0**。
+当前版本：**v2.5.0**。
 
 ## 适合什么场景
 
@@ -35,7 +35,7 @@ LumiFlow 是一个面向 ChatGPT、Claude 和 Gemini 的 Chrome 扩展。它把�
 
 LumiFlow 会导出完整对话，并给每条内容加上 User / ChatGPT / Claude / Gemini 等说话者标签。
 
-ChatGPT 和 Claude 会优先从平台当前会话的数据接口读取完整对话；如果这条路径不可用，LumiFlow 会回退到页面加载与提取。Gemini 通过页面提取完成导出。
+ChatGPT 和 Claude 会优先从平台当前会话的数据接口读取完整对话；如果这条路径不可用，LumiFlow 会回退到页面加载与提取。Gemini 通过页面提取完成导出。DeepSeek 优先读取网页当前会话的数据接口（只导出正文，不含“深度思考”过程），失败时回退到页面提取。
 
 这个流程不会创建 checkpoint segment，也不需要配置模型 API。
 
@@ -64,6 +64,7 @@ Checkpoint 用来保存“下一段对话仍然需要知道什么”。
 | ChatGPT | 支持 |
 | Claude | 支持 |
 | Gemini | 支持 |
+| DeepSeek（`chat.deepseek.com`） | 支持完整对话导出与注入；v2.5.0 新增 |
 | TXT / Markdown 完整对话导出 | 支持 |
 | Auto AI compression | 支持，需要用户自己的 Gemini / OpenAI / Anthropic API key |
 | Manual ABSORB | 支持，不需要 API key |

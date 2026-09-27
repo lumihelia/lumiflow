@@ -768,7 +768,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const names = {
             claude: 'Claude',
             chatgpt: 'ChatGPT',
-            gemini: 'Gemini'
+            gemini: 'Gemini',
+            deepseek: 'DeepSeek'
         };
         return names[platform] || 'AI';
     }
@@ -1560,6 +1561,7 @@ ${text}`
             'claude': 'CLAUDE',
             'chatgpt': 'CHATGPT',
             'gemini': 'GEMINI',
+            'deepseek': 'DEEPSEEK',
             'unknown': 'UNKNOWN'
         };
 

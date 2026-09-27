@@ -4,7 +4,7 @@ Carry an AI conversation into the next one.
 
 [中文](README.md) · [English](README.en.md)
 
-[![Version](https://img.shields.io/badge/version-2.4.0-blue.svg)](manifest.json)
+[![Version](https://img.shields.io/badge/version-2.5.0-blue.svg)](manifest.json)
 [![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-brightgreen.svg)](https://chromewebstore.google.com/detail/lumiflow/onekhnkogijnmpddmceomhibhenhffaf)
 [![License](https://img.shields.io/badge/license-MIT-purple.svg)](LICENSE)
 
@@ -15,7 +15,7 @@ It currently supports two main workflows:
 - **Full conversation export**: download the current conversation as TXT or Markdown with speaker labels for archiving, reading, or further processing.
 - **Checkpoint migration**: distill the goals, decisions, constraints, examples, and progress that still matter into editable segments, then inject them into a new AI conversation.
 
-Current version: **v2.4.0**.
+Current version: **v2.5.0**.
 
 ## When it is useful
 
@@ -35,7 +35,7 @@ Open LumiFlow on a supported conversation page and click:
 
 The export keeps speaker labels such as User / ChatGPT / Claude / Gemini.
 
-For ChatGPT and Claude, LumiFlow first tries to read the current conversation from the platform data used by the web app. If that path is unavailable, it falls back to loading and extracting the page. Gemini is exported through page extraction.
+For ChatGPT and Claude, LumiFlow first tries to read the current conversation from the platform data used by the web app. If that path is unavailable, it falls back to loading and extracting the page. Gemini is exported through page extraction. DeepSeek first reads the conversation data used by the web app (final answers only, without the "DeepThink" reasoning) and falls back to page extraction.
 
 This workflow does not create checkpoint segments and does not require a model API key.
 
@@ -64,6 +64,7 @@ Segments can be edited, deleted, and reordered. When the checkpoint is ready, op
 | ChatGPT | Supported |
 | Claude | Supported |
 | Gemini | Supported |
+| DeepSeek (`chat.deepseek.com`) | Full export and inject supported; added in v2.5.0 |
 | Full TXT / Markdown conversation export | Supported |
 | Auto AI compression | Supported; requires your Gemini / OpenAI / Anthropic API key |
 | Manual ABSORB | Supported; no API key required |

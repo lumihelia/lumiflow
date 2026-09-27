@@ -1,11 +1,11 @@
-// content.js - LumiFlow v2.4.0
+// content.js - LumiFlow v2.5.0
 // ===================================
 // Content script for AI chat platforms
-// Only runs on claude.ai, chatgpt.com, gemini.google.com
+// Only runs on claude.ai, chatgpt.com, gemini.google.com, chat.deepseek.com
 // (controlled by manifest.json content_scripts.matches)
 // ===================================
 
-console.log("LumiFlow v2.4.0: Content script loaded on", window.location.hostname);
+console.log("LumiFlow v2.5.0: Content script loaded on", window.location.hostname);
 
 // ========================================
 // DOMAIN PROTECTION (双重防护)
@@ -16,7 +16,8 @@ const ALLOWED_DOMAINS = [
   'claude.ai',
   'chat.openai.com',
   'chatgpt.com',
-  'gemini.google.com'
+  'gemini.google.com',
+  'chat.deepseek.com'
 ];
 
 const currentDomain = window.location.hostname;
@@ -37,6 +38,7 @@ const PLATFORMS = {
   CLAUDE: 'claude',
   CHATGPT: 'chatgpt',
   GEMINI: 'gemini',
+  DEEPSEEK: 'deepseek',
   UNKNOWN: 'unknown'
 };
 
@@ -297,8 +299,8 @@ async function handleAutoCompress(request, sendResponse) {
         console.log('[AUTO] Send button not found - user needs to send manually');
         // 对于 Gemini，尝试用 Enter 键发送
         const platform = detectPlatform();
-        if (platform === PLATFORMS.GEMINI) {
-          console.log('[AUTO] Trying Enter key for Gemini...');
+        if (platform === PLATFORMS.GEMINI || platform === PLATFORMS.DEEPSEEK) {
+          console.log(`[AUTO] Trying Enter key for ${platform}...`);
           inputField.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
         }
       }
@@ -538,6 +540,9 @@ async function fetchConversationViaAPI(platform) {
     if (platform === PLATFORMS.CLAUDE) {
       return await fetchClaudeConversationAPI();
     }
+    if (platform === PLATFORMS.DEEPSEEK) {
+      return await fetchDeepSeekConversationAPI();
+    }
   } catch (error) {
     console.warn('[LumiFlow] API extraction failed, falling back to DOM scraping:', error.message);
   }
@@ -667,6 +672,100 @@ function extractClaudeMessageText(m) {
   return '';
 }
 
+// DeepSeek：网页把登录 token 存在 localStorage.userToken（形如 {"value": "..."}），
+// 并通过 /api/v0/chat/history_messages 拉取整段会话。会话可能有分支（重新生成/编辑），
+// 若返回了 current_message_id，就沿 parent_id 回溯出当前显示的那条分支。
+function getDeepSeekConversationId() {
+  const match = window.location.pathname.match(/\/chat\/s\/([a-zA-Z0-9-]+)/);
+  return match ? match[1] : null;
+}
+
+function getDeepSeekToken() {
+  try {
+    const raw = window.localStorage.getItem('userToken');
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed.value === 'string') return parsed.value;
+      if (typeof parsed === 'string') return parsed;
+    } catch (e) {
+      return raw;
+    }
+  } catch (e) {
+    // localStorage 不可用
+  }
+  return null;
+}
+
+async function fetchDeepSeekConversationAPI() {
+  const sessionId = getDeepSeekConversationId();
+  if (!sessionId) return null;
+
+  const headers = {};
+  const token = getDeepSeekToken();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetchWithTimeout(
+    `/api/v0/chat/history_messages?chat_session_id=${encodeURIComponent(sessionId)}`,
+    { headers, credentials: 'include' }
+  );
+  if (!res.ok) return null;
+
+  const data = await res.json();
+  const biz = data && data.data && data.data.biz_data;
+  const rawMessages = biz && biz.chat_messages;
+  if (!Array.isArray(rawMessages) || rawMessages.length === 0) return null;
+
+  const ordered = orderDeepSeekMessages(rawMessages, biz.chat_session && biz.chat_session.current_message_id);
+
+  const messages = [];
+  for (const m of ordered) {
+    const role = String(m.role || '').toUpperCase() === 'USER' ? 'user' : 'model';
+    const content = extractDeepSeekMessageText(m);
+    if (content && content.trim().length > 0) {
+      messages.push({ role, content: content.trim() });
+    }
+  }
+
+  return messages.length > 0 ? messages : null;
+}
+
+function orderDeepSeekMessages(rawMessages, currentMessageId) {
+  const byId = new Map();
+  rawMessages.forEach(m => {
+    if (m && m.message_id !== undefined && m.message_id !== null) byId.set(m.message_id, m);
+  });
+
+  if (currentMessageId !== undefined && currentMessageId !== null && byId.has(currentMessageId)) {
+    const chain = [];
+    let id = currentMessageId;
+    let guard = 0;
+    while (id !== undefined && id !== null && byId.has(id) && guard < 5000) {
+      const m = byId.get(id);
+      chain.push(m);
+      id = m.parent_id;
+      guard++;
+    }
+    if (chain.length > 0) return chain.reverse();
+  }
+
+  return rawMessages;
+}
+
+// 只取正文，不导出"深度思考"(thinking) 过程
+function extractDeepSeekMessageText(m) {
+  if (Array.isArray(m.fragments) && m.fragments.length > 0) {
+    return m.fragments
+      .filter(f => f && typeof f.content === 'string' && !/THINK/i.test(String(f.type || '')))
+      .map(f => f.content)
+      .join('\n\n');
+  }
+  if (typeof m.content === 'string') {
+    return m.content;
+  }
+  return '';
+}
+
 // 懒加载修复：所有平台在长对话中都会按需加载/卸载早期消息（无限滚动）。
 // 反复滚动到顶部，直到消息数量连续多轮保持不变，才认为历史已全部加载。
 // 用"消息数量是否还在增长"判断完成，而不是 scrollTop===0
@@ -679,6 +778,8 @@ function getMessageCountSelector(platform) {
       return '[data-message-author-role]';
     case PLATFORMS.GEMINI:
       return '[class*="message"], [data-message-id]';
+    case PLATFORMS.DEEPSEEK:
+      return '.ds-markdown';
     default:
       return null;
   }
@@ -752,6 +853,8 @@ function detectPlatform() {
     return PLATFORMS.CHATGPT;
   } else if (hostname.includes('gemini.google.com')) {
     return PLATFORMS.GEMINI;
+  } else if (hostname.includes('deepseek.com')) {
+    return PLATFORMS.DEEPSEEK;
   }
 
   return PLATFORMS.UNKNOWN;
@@ -777,6 +880,9 @@ function extractConversation() {
     case PLATFORMS.GEMINI:
       messages = extractGeminiConversation();
       break;
+    case PLATFORMS.DEEPSEEK:
+      messages = extractDeepSeekConversation();
+      break;
     default:
       console.warn('[EXTRACT] Unknown platform, cannot extract');
       return [];
@@ -801,6 +907,9 @@ function extractConversation() {
       console.warn('  - Gemini: Found main element:', !!main);
       const allMessages = document.querySelectorAll('[class*="message"], [data-message-id]');
       console.warn('  - Gemini: Found', allMessages.length, 'message candidates');
+    } else if (platform === PLATFORMS.DEEPSEEK) {
+      const replies = document.querySelectorAll('.ds-markdown');
+      console.warn('  - DeepSeek: Found', replies.length, '.ds-markdown elements');
     }
   }
 
@@ -986,6 +1095,63 @@ function extractGeminiConversation() {
   return messages;
 }
 
+// DeepSeek 的 class 名多为构建时生成的哈希，只有回答正文稳定地带 .ds-markdown。
+// 做法：从回答节点向上找到"消息列表"那一层（它的子节点就是一条条消息），
+// 含 .ds-markdown 的子节点是 DeepSeek 的回答，其余有文字的子节点是用户消息。
+function findDeepSeekMessageList(replyEls) {
+  const first = replyEls[0];
+  let node = first.parentElement;
+
+  while (node && node !== document.body) {
+    const parent = node.parentElement;
+    if (!parent) break;
+    const containsAll = replyEls.every(el => parent.contains(el));
+    if (containsAll && parent.children.length >= replyEls.length) {
+      return parent;
+    }
+    node = parent;
+  }
+  return null;
+}
+
+function getDeepSeekReplyText(el) {
+  const clone = el.cloneNode(true);
+  // 去掉深度思考过程，只保留最终回答
+  clone.querySelectorAll('[class*="think"], [class*="Think"]').forEach(n => n.remove());
+  const markdowns = clone.querySelectorAll('.ds-markdown');
+  const source = markdowns.length > 0 ? Array.from(markdowns).map(n => n.innerText || n.textContent || '').join('\n\n') : (clone.innerText || clone.textContent || '');
+  return source;
+}
+
+function extractDeepSeekConversation() {
+  const messages = [];
+  const replyEls = Array.from(document.querySelectorAll('.ds-markdown'))
+    // 嵌套在另一个 .ds-markdown 里的（例如思考块内部）不单独算
+    .filter(el => !el.parentElement || !el.parentElement.closest('.ds-markdown'));
+
+  if (replyEls.length === 0) return messages;
+
+  const list = findDeepSeekMessageList(replyEls);
+  if (!list) {
+    replyEls.forEach(el => {
+      const content = (el.innerText || el.textContent || '').trim();
+      if (content) messages.push({ role: 'model', content });
+    });
+    return messages;
+  }
+
+  Array.from(list.children).forEach(child => {
+    const isReply = !!child.querySelector('.ds-markdown') || child.classList.contains('ds-markdown');
+    const raw = isReply ? getDeepSeekReplyText(child) : (child.innerText || child.textContent || '');
+    const content = raw.replace(/\n{3,}/g, '\n\n').trim();
+    if (content) {
+      messages.push({ role: isReply ? 'model' : 'user', content });
+    }
+  });
+
+  return messages;
+}
+
 function cleanMessageContent(text) {
   if (!text) return "";
 
@@ -1071,6 +1237,14 @@ function findInputField() {
         'div[contenteditable="true"]',
         'textarea[aria-label*="Ask"]',
         'textarea'
+      ];
+      break;
+
+    case PLATFORMS.DEEPSEEK:
+      selectors = [
+        'textarea#chat-input',
+        'textarea',
+        'div[contenteditable="true"]'
       ];
       break;
 
@@ -1287,6 +1461,9 @@ function getLastAIMessage() {
         'div[class*="message"]'
       ];
       break;
+    case PLATFORMS.DEEPSEEK:
+      selectors = ['.ds-markdown'];
+      break;
     default:
       selectors = ['[class*="assistant"]', '[class*="bot"]', '[class*="ai"]'];
       break;
@@ -1355,6 +1532,8 @@ function getMessageSelector(platform) {
       return '[data-message-author-role="assistant"]';
     case PLATFORMS.GEMINI:
       return '[class*="message"]';
+    case PLATFORMS.DEEPSEEK:
+      return '.ds-markdown';
     default:
       return 'div';
   }
