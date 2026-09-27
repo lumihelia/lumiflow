@@ -131,7 +131,8 @@ LumiFlow 是一个 Manifest V3 Chrome extension，主要由以下部分组成：
 
 - `content.js`：平台识别、对话提取、文本选择与输入框注入。
 - `popup.js` / `popup.html`：扩展界面、segments 管理、导出与 compression 工作流。
-- `background.js`：向 Gemini / OpenAI / Anthropic 发起用户授权的 API 请求。
+- `background.js`：向 Gemini / OpenAI / Anthropic 发起用户授权的 API 请求，并在后台完成 API 压缩流程。
+- `prompts.js`：API 压缩使用的多语言 prompt 模板。
 - `manifest.json`：扩展权限、支持域名与快捷键配置。
 
 ## 开发与贡献

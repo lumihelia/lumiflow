@@ -6,6 +6,9 @@
 
 console.log('LumiFlow: Service Worker started');
 
+// 压缩 prompt 模板与 popup 共用
+importScripts('prompts.js');
+
 // 🆕 Handle keyboard shortcuts
 chrome.commands.onCommand.addListener((command) => {
     console.log('[LumiFlow] Command received:', command);
@@ -32,7 +35,73 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             .catch(error => sendResponse({ success: false, error: error.message }));
         return true; // Keep channel open for async response
     }
+
+    if (request.action === 'compressConversation') {
+        compressConversation(request.tabId, request.apiSettings)
+            .then(result => sendResponse({ success: true, ...result }))
+            .catch(error => sendResponse({ success: false, error: error.message }));
+        return true;
+    }
 });
+
+// ========================================
+// COMPRESS (API MODE)
+// ========================================
+// 整个流程（读对话 → 调 API → 存结果）都在 Service Worker 里跑，
+// popup 在等待期间被关掉也不影响；结果写进 lastCheckpoint，popup 下次打开时收进 segments。
+
+function sendToTab(tabId, message) {
+    return new Promise((resolve, reject) => {
+        chrome.tabs.sendMessage(tabId, message, (response) => {
+            if (chrome.runtime.lastError) {
+                reject(new Error(chrome.runtime.lastError.message));
+                return;
+            }
+            resolve(response);
+        });
+    });
+}
+
+async function compressConversation(tabId, apiSettings) {
+    let response;
+    try {
+        response = await sendToTab(tabId, { action: 'get_conversation' });
+    } catch (error) {
+        // 页面刚刷新时 content script 可能还没就绪，稍等再试一次
+        await new Promise(r => setTimeout(r, 800));
+        response = await sendToTab(tabId, { action: 'get_conversation' });
+    }
+
+    if (!response || response.status !== 'success') {
+        throw new Error((response && response.message) || 'Could not read the conversation. Try refreshing the page.');
+    }
+
+    const conversation = response.conversation || [];
+    if (conversation.length === 0) {
+        throw new Error('No messages found on page');
+    }
+
+    const conversationText = conversation.map(m =>
+        `${m.role === 'user' ? 'Human' : 'AI'}: ${m.content}`
+    ).join('\n\n');
+
+    const checkpoint = await handleAPICall({
+        provider: apiSettings.provider,
+        apiKey: apiSettings.key,
+        prompt: buildCompressionPrompt(conversationText)
+    });
+
+    const result = {
+        checkpoint,
+        timestamp: new Date().toISOString(),
+        platform: response.platform || 'unknown',
+        originalLength: conversationText.length,
+        messageCount: conversation.length
+    };
+
+    await chrome.storage.local.set({ lastCheckpoint: result });
+    return result;
+}
 
 async function handleAPICall(request) {
     const { provider, apiKey, prompt } = request;

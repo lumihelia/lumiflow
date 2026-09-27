@@ -300,7 +300,10 @@ async function handleAutoCompress(request, sendResponse) {
     const prompt = request.customPrompt || getCompressionPrompt();
     console.log('[AUTO] Language detected, prompt generated');
 
-    // Step 3: Inject prompt
+    // Step 3: 发送前先记下页面上已有的 checkpoint（之前压缩过的），等待时只认新生成的
+    snapshotExistingCheckpoints();
+
+    // Step 4: Inject prompt
     console.log('Injecting compression prompt...');
     injectTextIntoField(inputField, prompt);
     await sleep(500);
@@ -326,8 +329,9 @@ async function handleAutoCompress(request, sendResponse) {
       showWaitingIndicator();
 
       try {
-        // Gemini 生成较慢，给更长时间
-        const timeout = detectPlatform() === PLATFORMS.GEMINI ? 90000 : 60000;
+        // Gemini 和 DeepSeek（深度思考）生成较慢，给更长时间
+        const slowPlatforms = [PLATFORMS.GEMINI, PLATFORMS.DEEPSEEK];
+        const timeout = slowPlatforms.includes(detectPlatform()) ? 90000 : 60000;
         const response = await waitForAIResponse(timeout);
 
         console.log('[CONTENT] Got AI response, saving to storage...');
@@ -406,7 +410,16 @@ function handleManualAbsorb(sendResponse) {
 
     // Clean excessive newlines (reduce 3+ newlines to 2)
     // This fixes the large gap issue in Manual Absorb mode
-    const cleanSelection = selection.replace(/\n{3,}/g, '\n\n');
+    // 选中 AI 生成的 checkpoint 时，顺手去掉首尾的 <<<CHECKPOINT_START/END>>> 标记
+    const cleanSelection = selection
+      .replace(/<<<CHECKPOINT_(START|END)>>>/g, '')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+
+    if (!cleanSelection) {
+      sendResponse({ status: 'error', message: 'Please select some text first.' });
+      return;
+    }
 
     console.log('[CONTENT] First 100 chars:', cleanSelection.substring(0, 100));
 
@@ -435,12 +448,10 @@ function handleInject(text, sendResponse) {
     const inputField = findInputField();
 
     if (!inputField) {
-      // Fallback to clipboard
-      navigator.clipboard.writeText(text).then(() => {
-        sendResponse({
-          status: 'clipboard',
-          message: 'Input field not found. Text copied to clipboard.'
-        });
+      // popup 开着时页面没有焦点，这里写剪贴板会失败；交给 popup 去复制
+      sendResponse({
+        status: 'no_input',
+        message: 'Input field not found.'
       });
       return;
     }
@@ -1513,7 +1524,7 @@ function getLastAIMessage() {
         // 找包含 CHECKPOINT 标记的元素（跳过我们自己发出去的压缩 prompt——它里面也有这两个标记）
         for (let i = messages.length - 1; i >= 0; i--) {
           const text = messages[i].innerText || messages[i].textContent || '';
-          if (text.includes('<<<CHECKPOINT') && !isCompressionPromptEcho(text)) {
+          if (text.includes('<<<CHECKPOINT') && !isCompressionPromptEcho(text) && !isExistingCheckpoint(messages[i], text)) {
             console.log(`[getLastAIMessage] Found checkpoint in: ${selector}, index ${i}`);
             return messages[i];
           }
@@ -1521,7 +1532,7 @@ function getLastAIMessage() {
         // 如果没找到 checkpoint，返回最后一个（同样不能是 prompt 本身）
         const last = messages[messages.length - 1];
         const lastText = last.innerText || last.textContent || '';
-        if (isCompressionPromptEcho(lastText)) continue;
+        if (isCompressionPromptEcho(lastText) || isExistingCheckpoint(last, lastText)) continue;
         console.log(`[getLastAIMessage] Using last element from: ${selector}`);
         return last;
       }
@@ -1535,7 +1546,7 @@ function getLastAIMessage() {
   const allElements = document.querySelectorAll('div, p, section, article');
   for (let i = allElements.length - 1; i >= 0; i--) {
     const text = allElements[i].innerText || '';
-    if (text.includes('<<<CHECKPOINT_START>>>') && text.includes('<<<CHECKPOINT_END>>>') && !isCompressionPromptEcho(text)) {
+    if (text.includes('<<<CHECKPOINT_START>>>') && text.includes('<<<CHECKPOINT_END>>>') && !isCompressionPromptEcho(text) && !isExistingCheckpoint(allElements[i], text)) {
       console.log('[getLastAIMessage] Found checkpoint via fallback search');
       return allElements[i];
     }
@@ -1546,6 +1557,30 @@ function getLastAIMessage() {
 }
 
 
+// 对话里可能已经有上一次生成的 checkpoint。发送前把它们（元素和内容）记下来，
+// 否则等待时会立刻把旧的那份当成新结果。
+let existingCheckpointEls = new WeakSet();
+let existingCheckpointTexts = new Set();
+
+function snapshotExistingCheckpoints() {
+  existingCheckpointEls = new WeakSet();
+  existingCheckpointTexts = new Set();
+  document.querySelectorAll('div, p, section, article, model-response, message-content').forEach(el => {
+    const text = el.innerText || el.textContent || '';
+    if (text.includes('<<<CHECKPOINT_END>>>')) {
+      existingCheckpointEls.add(el);
+      const cp = extractCheckpoint(text);
+      if (cp) existingCheckpointTexts.add(cp);
+    }
+  });
+}
+
+function isExistingCheckpoint(el, text) {
+  if (existingCheckpointEls.has(el)) return true;
+  const cp = text.includes('<<<CHECKPOINT_END>>>') ? extractCheckpoint(text) : null;
+  return !!cp && existingCheckpointTexts.has(cp);
+}
+
 // 用户消息里的压缩 prompt 同样含有 START/END 标记；靠 prompt 独有的文字把它认出来
 function isCompressionPromptEcho(text) {
   return text.includes('CONTEXT COMPRESSION TASK') || text.includes('SELF-CHECK before output');
@@ -1555,8 +1590,9 @@ function extractCheckpoint(fullText) {
   const startMarker = '<<<CHECKPOINT_START>>>';
   const endMarker = '<<<CHECKPOINT_END>>>';
 
-  const startIdx = fullText.indexOf(startMarker);
-  const endIdx = fullText.indexOf(endMarker);
+  // 取最后一对标记：AI 有时会在正文前先复述一遍"我会用 <<<CHECKPOINT_START>>> ... 输出"
+  const endIdx = fullText.lastIndexOf(endMarker);
+  const startIdx = endIdx === -1 ? -1 : fullText.lastIndexOf(startMarker, endIdx);
 
   if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
     // Extract content between markers (excluding the markers themselves)
