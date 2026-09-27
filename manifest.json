@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "LumiFlow",
-  "version": "2.4.0",
-  "description": "Never lose context switching AI chats. Auto-compress & inject across ChatGPT, Claude, Gemini. Local storage only.",
+  "version": "2.5.0",
+  "description": "Never lose context switching AI chats. Auto-compress & inject across ChatGPT, Claude, Gemini, DeepSeek. Local storage only.",
   "author": "Helia Hon",
   "homepage_url": "https://github.com/lumihelia/lumiflow",
   "permissions": [
@@ -17,6 +17,7 @@
     "https://chat.openai.com/*",
     "https://chatgpt.com/*",
     "https://gemini.google.com/*",
+    "https://chat.deepseek.com/*",
     "https://api.anthropic.com/*",
     "https://api.openai.com/*",
     "https://generativelanguage.googleapis.com/*"
@@ -40,7 +41,8 @@
         "https://claude.ai/*",
         "https://chat.openai.com/*",
         "https://chatgpt.com/*",
-        "https://gemini.google.com/*"
+        "https://gemini.google.com/*",
+        "https://chat.deepseek.com/*"
       ],
       "js": ["content.js"],
       "run_at": "document_idle",

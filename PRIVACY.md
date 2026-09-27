@@ -44,7 +44,7 @@ Provider policies:
 
 LumiFlow reads conversations from supported AI services so it can export them or create checkpoints.
 
-For ChatGPT and Claude, the extension may read the current conversation from platform data used by the web application and can fall back to page-based extraction. Gemini uses page-based extraction.
+For ChatGPT and Claude, the extension may read the current conversation from platform data used by the web application and can fall back to page-based extraction. Gemini uses page-based extraction. For DeepSeek, the extension may read the current conversation from the web application's own conversation endpoint, using the login session already present in that browser tab, and can fall back to page-based extraction.
 
 This access happens in the browser session where you are already using the AI service. LumiFlow does not send those extracted conversations to a LumiFlow server.
 
@@ -72,6 +72,7 @@ The current Manifest V3 extension requests:
 | `chatgpt.com`, `chat.openai.com` | Read and inject context on ChatGPT |
 | `claude.ai` | Read and inject context on Claude |
 | `gemini.google.com` | Read and inject context on Gemini |
+| `chat.deepseek.com` | Read and inject context on DeepSeek |
 | `api.openai.com` | Send user-authorized OpenAI compression requests |
 | `api.anthropic.com` | Send user-authorized Anthropic compression requests |
 | `generativelanguage.googleapis.com` | Send user-authorized Gemini compression requests |

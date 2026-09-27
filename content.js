@@ -1,11 +1,11 @@
-// content.js - LumiFlow v2.4.0
+// content.js - LumiFlow v2.5.0
 // ===================================
 // Content script for AI chat platforms
-// Only runs on claude.ai, chatgpt.com, gemini.google.com
+// Only runs on claude.ai, chatgpt.com, gemini.google.com, chat.deepseek.com
 // (controlled by manifest.json content_scripts.matches)
 // ===================================
 
-console.log("LumiFlow v2.4.0: Content script loaded on", window.location.hostname);
+console.log("LumiFlow v2.5.0: Content script loaded on", window.location.hostname);
 
 // ========================================
 // DOMAIN PROTECTION (双重防护)
@@ -16,7 +16,8 @@ const ALLOWED_DOMAINS = [
   'claude.ai',
   'chat.openai.com',
   'chatgpt.com',
-  'gemini.google.com'
+  'gemini.google.com',
+  'chat.deepseek.com'
 ];
 
 const currentDomain = window.location.hostname;
@@ -37,6 +38,7 @@ const PLATFORMS = {
   CLAUDE: 'claude',
   CHATGPT: 'chatgpt',
   GEMINI: 'gemini',
+  DEEPSEEK: 'deepseek',
   UNKNOWN: 'unknown'
 };
 
@@ -231,8 +233,24 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 async function handleKeyboardInject(sendResponse) {
   try {
     // Get last checkpoint from storage
-    const result = await chrome.storage.local.get(['segments']);
+    const result = await chrome.storage.local.get(['segments', 'lastCheckpoint']);
     const segments = result.segments || [];
+
+    // 用快捷键压缩后没打开过 popup 时，checkpoint 还停在 lastCheckpoint 里，先把它收进 segments
+    const pending = result.lastCheckpoint;
+    if (pending && pending.checkpoint && !segments.some(s => s.content === pending.checkpoint)) {
+      segments.push({
+        id: Date.now() + Math.random(),
+        content: pending.checkpoint,
+        platform: pending.platform || 'unknown',
+        timestamp: pending.timestamp || new Date().toISOString(),
+        collapsed: pending.checkpoint.length > 200
+      });
+      await chrome.storage.local.set({ segments });
+    }
+    if (pending) {
+      await chrome.storage.local.remove('lastCheckpoint');
+    }
 
     if (segments.length === 0) {
       console.log('[LumiFlow] No segments to inject');
@@ -282,7 +300,10 @@ async function handleAutoCompress(request, sendResponse) {
     const prompt = request.customPrompt || getCompressionPrompt();
     console.log('[AUTO] Language detected, prompt generated');
 
-    // Step 3: Inject prompt
+    // Step 3: 发送前先记下页面上已有的 checkpoint（之前压缩过的），等待时只认新生成的
+    snapshotExistingCheckpoints();
+
+    // Step 4: Inject prompt
     console.log('Injecting compression prompt...');
     injectTextIntoField(inputField, prompt);
     await sleep(500);
@@ -297,8 +318,8 @@ async function handleAutoCompress(request, sendResponse) {
         console.log('[AUTO] Send button not found - user needs to send manually');
         // 对于 Gemini，尝试用 Enter 键发送
         const platform = detectPlatform();
-        if (platform === PLATFORMS.GEMINI) {
-          console.log('[AUTO] Trying Enter key for Gemini...');
+        if (platform === PLATFORMS.GEMINI || platform === PLATFORMS.DEEPSEEK) {
+          console.log(`[AUTO] Trying Enter key for ${platform}...`);
           inputField.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
         }
       }
@@ -308,8 +329,9 @@ async function handleAutoCompress(request, sendResponse) {
       showWaitingIndicator();
 
       try {
-        // Gemini 生成较慢，给更长时间
-        const timeout = detectPlatform() === PLATFORMS.GEMINI ? 90000 : 60000;
+        // Gemini 和 DeepSeek（深度思考）生成较慢，给更长时间
+        const slowPlatforms = [PLATFORMS.GEMINI, PLATFORMS.DEEPSEEK];
+        const timeout = slowPlatforms.includes(detectPlatform()) ? 90000 : 60000;
         const response = await waitForAIResponse(timeout);
 
         console.log('[CONTENT] Got AI response, saving to storage...');
@@ -331,6 +353,7 @@ async function handleAutoCompress(request, sendResponse) {
           }
 
           console.log('[CONTENT] Checkpoint saved successfully!');
+          showPageToast('LumiFlow: checkpoint saved. Open a new chat and click INJECT.');
           console.log('[CONTENT] Length:', response.length, 'chars');
 
           sendResponse({
@@ -342,6 +365,7 @@ async function handleAutoCompress(request, sendResponse) {
         });
       } catch (error) {
         console.error('[AUTO] Timeout waiting for response:', error.message);
+        showPageToast('LumiFlow: timed out. Select the checkpoint and use Manual Absorb.');
         sendResponse({
           status: 'timeout',
           message: 'AI response timeout. Please select the response and use Manual Absorb.'
@@ -386,7 +410,16 @@ function handleManualAbsorb(sendResponse) {
 
     // Clean excessive newlines (reduce 3+ newlines to 2)
     // This fixes the large gap issue in Manual Absorb mode
-    const cleanSelection = selection.replace(/\n{3,}/g, '\n\n');
+    // 选中 AI 生成的 checkpoint 时，顺手去掉首尾的 <<<CHECKPOINT_START/END>>> 标记
+    const cleanSelection = selection
+      .replace(/<<<CHECKPOINT_(START|END)>>>/g, '')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+
+    if (!cleanSelection) {
+      sendResponse({ status: 'error', message: 'Please select some text first.' });
+      return;
+    }
 
     console.log('[CONTENT] First 100 chars:', cleanSelection.substring(0, 100));
 
@@ -415,12 +448,10 @@ function handleInject(text, sendResponse) {
     const inputField = findInputField();
 
     if (!inputField) {
-      // Fallback to clipboard
-      navigator.clipboard.writeText(text).then(() => {
-        sendResponse({
-          status: 'clipboard',
-          message: 'Input field not found. Text copied to clipboard.'
-        });
+      // popup 开着时页面没有焦点，这里写剪贴板会失败；交给 popup 去复制
+      sendResponse({
+        status: 'no_input',
+        message: 'Input field not found.'
       });
       return;
     }
@@ -445,10 +476,12 @@ function handleInject(text, sendResponse) {
 // GET STATS HANDLER
 // ========================================
 
-function handleGetStats(sendResponse) {
+// 统计和下载使用同一条数据来源：先读平台接口，失败再退回页面提取。
+// 只读页面的话，长对话里早期消息已被懒加载卸载，数量会明显偏少。
+async function handleGetStats(sendResponse) {
   try {
     const platform = detectPlatform();
-    const messages = extractConversation();
+    const messages = (await fetchConversationViaAPI(platform)) || extractConversation();
     const stats = getConversationStats(messages);
 
     sendResponse({
@@ -537,6 +570,9 @@ async function fetchConversationViaAPI(platform) {
     }
     if (platform === PLATFORMS.CLAUDE) {
       return await fetchClaudeConversationAPI();
+    }
+    if (platform === PLATFORMS.DEEPSEEK) {
+      return await fetchDeepSeekConversationAPI();
     }
   } catch (error) {
     console.warn('[LumiFlow] API extraction failed, falling back to DOM scraping:', error.message);
@@ -667,6 +703,100 @@ function extractClaudeMessageText(m) {
   return '';
 }
 
+// DeepSeek：网页把登录 token 存在 localStorage.userToken（形如 {"value": "..."}），
+// 并通过 /api/v0/chat/history_messages 拉取整段会话。会话可能有分支（重新生成/编辑），
+// 若返回了 current_message_id，就沿 parent_id 回溯出当前显示的那条分支。
+function getDeepSeekConversationId() {
+  const match = window.location.pathname.match(/\/chat\/s\/([a-zA-Z0-9-]+)/);
+  return match ? match[1] : null;
+}
+
+function getDeepSeekToken() {
+  try {
+    const raw = window.localStorage.getItem('userToken');
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed.value === 'string') return parsed.value;
+      if (typeof parsed === 'string') return parsed;
+    } catch (e) {
+      return raw;
+    }
+  } catch (e) {
+    // localStorage 不可用
+  }
+  return null;
+}
+
+async function fetchDeepSeekConversationAPI() {
+  const sessionId = getDeepSeekConversationId();
+  if (!sessionId) return null;
+
+  const headers = {};
+  const token = getDeepSeekToken();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetchWithTimeout(
+    `/api/v0/chat/history_messages?chat_session_id=${encodeURIComponent(sessionId)}`,
+    { headers, credentials: 'include' }
+  );
+  if (!res.ok) return null;
+
+  const data = await res.json();
+  const biz = data && data.data && data.data.biz_data;
+  const rawMessages = biz && biz.chat_messages;
+  if (!Array.isArray(rawMessages) || rawMessages.length === 0) return null;
+
+  const ordered = orderDeepSeekMessages(rawMessages, biz.chat_session && biz.chat_session.current_message_id);
+
+  const messages = [];
+  for (const m of ordered) {
+    const role = String(m.role || '').toUpperCase() === 'USER' ? 'user' : 'model';
+    const content = extractDeepSeekMessageText(m);
+    if (content && content.trim().length > 0) {
+      messages.push({ role, content: content.trim() });
+    }
+  }
+
+  return messages.length > 0 ? messages : null;
+}
+
+function orderDeepSeekMessages(rawMessages, currentMessageId) {
+  const byId = new Map();
+  rawMessages.forEach(m => {
+    if (m && m.message_id !== undefined && m.message_id !== null) byId.set(m.message_id, m);
+  });
+
+  if (currentMessageId !== undefined && currentMessageId !== null && byId.has(currentMessageId)) {
+    const chain = [];
+    let id = currentMessageId;
+    let guard = 0;
+    while (id !== undefined && id !== null && byId.has(id) && guard < 5000) {
+      const m = byId.get(id);
+      chain.push(m);
+      id = m.parent_id;
+      guard++;
+    }
+    if (chain.length > 0) return chain.reverse();
+  }
+
+  return rawMessages;
+}
+
+// 只取正文，不导出"深度思考"(thinking) 过程
+function extractDeepSeekMessageText(m) {
+  if (Array.isArray(m.fragments) && m.fragments.length > 0) {
+    return m.fragments
+      .filter(f => f && typeof f.content === 'string' && !/THINK/i.test(String(f.type || '')))
+      .map(f => f.content)
+      .join('\n\n');
+  }
+  if (typeof m.content === 'string') {
+    return m.content;
+  }
+  return '';
+}
+
 // 懒加载修复：所有平台在长对话中都会按需加载/卸载早期消息（无限滚动）。
 // 反复滚动到顶部，直到消息数量连续多轮保持不变，才认为历史已全部加载。
 // 用"消息数量是否还在增长"判断完成，而不是 scrollTop===0
@@ -679,6 +809,8 @@ function getMessageCountSelector(platform) {
       return '[data-message-author-role]';
     case PLATFORMS.GEMINI:
       return '[class*="message"], [data-message-id]';
+    case PLATFORMS.DEEPSEEK:
+      return '.ds-markdown';
     default:
       return null;
   }
@@ -752,6 +884,8 @@ function detectPlatform() {
     return PLATFORMS.CHATGPT;
   } else if (hostname.includes('gemini.google.com')) {
     return PLATFORMS.GEMINI;
+  } else if (hostname.includes('deepseek.com')) {
+    return PLATFORMS.DEEPSEEK;
   }
 
   return PLATFORMS.UNKNOWN;
@@ -777,6 +911,9 @@ function extractConversation() {
     case PLATFORMS.GEMINI:
       messages = extractGeminiConversation();
       break;
+    case PLATFORMS.DEEPSEEK:
+      messages = extractDeepSeekConversation();
+      break;
     default:
       console.warn('[EXTRACT] Unknown platform, cannot extract');
       return [];
@@ -801,6 +938,9 @@ function extractConversation() {
       console.warn('  - Gemini: Found main element:', !!main);
       const allMessages = document.querySelectorAll('[class*="message"], [data-message-id]');
       console.warn('  - Gemini: Found', allMessages.length, 'message candidates');
+    } else if (platform === PLATFORMS.DEEPSEEK) {
+      const replies = document.querySelectorAll('.ds-markdown');
+      console.warn('  - DeepSeek: Found', replies.length, '.ds-markdown elements');
     }
   }
 
@@ -986,6 +1126,63 @@ function extractGeminiConversation() {
   return messages;
 }
 
+// DeepSeek 的 class 名多为构建时生成的哈希，只有回答正文稳定地带 .ds-markdown。
+// 做法：从回答节点向上找到"消息列表"那一层（它的子节点就是一条条消息），
+// 含 .ds-markdown 的子节点是 DeepSeek 的回答，其余有文字的子节点是用户消息。
+function findDeepSeekMessageList(replyEls) {
+  const first = replyEls[0];
+  let node = first.parentElement;
+
+  while (node && node !== document.body) {
+    const parent = node.parentElement;
+    if (!parent) break;
+    const containsAll = replyEls.every(el => parent.contains(el));
+    if (containsAll && parent.children.length >= replyEls.length) {
+      return parent;
+    }
+    node = parent;
+  }
+  return null;
+}
+
+function getDeepSeekReplyText(el) {
+  const clone = el.cloneNode(true);
+  // 去掉深度思考过程，只保留最终回答
+  clone.querySelectorAll('[class*="think"], [class*="Think"]').forEach(n => n.remove());
+  const markdowns = clone.querySelectorAll('.ds-markdown');
+  const source = markdowns.length > 0 ? Array.from(markdowns).map(n => n.innerText || n.textContent || '').join('\n\n') : (clone.innerText || clone.textContent || '');
+  return source;
+}
+
+function extractDeepSeekConversation() {
+  const messages = [];
+  const replyEls = Array.from(document.querySelectorAll('.ds-markdown'))
+    // 嵌套在另一个 .ds-markdown 里的（例如思考块内部）不单独算
+    .filter(el => !el.parentElement || !el.parentElement.closest('.ds-markdown'));
+
+  if (replyEls.length === 0) return messages;
+
+  const list = findDeepSeekMessageList(replyEls);
+  if (!list) {
+    replyEls.forEach(el => {
+      const content = (el.innerText || el.textContent || '').trim();
+      if (content) messages.push({ role: 'model', content });
+    });
+    return messages;
+  }
+
+  Array.from(list.children).forEach(child => {
+    const isReply = !!child.querySelector('.ds-markdown') || child.classList.contains('ds-markdown');
+    const raw = isReply ? getDeepSeekReplyText(child) : (child.innerText || child.textContent || '');
+    const content = raw.replace(/\n{3,}/g, '\n\n').trim();
+    if (content) {
+      messages.push({ role: isReply ? 'model' : 'user', content });
+    }
+  });
+
+  return messages;
+}
+
 function cleanMessageContent(text) {
   if (!text) return "";
 
@@ -1074,6 +1271,14 @@ function findInputField() {
       ];
       break;
 
+    case PLATFORMS.DEEPSEEK:
+      selectors = [
+        'textarea#chat-input',
+        'textarea',
+        'div[contenteditable="true"]'
+      ];
+      break;
+
     default:
       selectors = [
         'div[contenteditable="true"]',
@@ -1145,9 +1350,24 @@ function findSendButton() {
 // ========================================
 
 function showWaitingIndicator() {
-  // 可以在这里添加页面上的等待提示
-  // 目前仅记录日志
   console.log('[LumiFlow] Waiting for AI to complete response...');
+  showPageToast('LumiFlow: waiting for the checkpoint…');
+}
+
+// popup 在等待期间经常被关掉（点一下页面就会关），所以直接在页面上提示进度
+function showPageToast(text) {
+  let toast = document.getElementById('lumiflow-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'lumiflow-toast';
+    toast.style.cssText = 'position:fixed;right:20px;bottom:20px;z-index:2147483647;' +
+      'padding:10px 14px;border-radius:8px;background:#4a4270;color:#fff;' +
+      'font:13px/1.4 -apple-system,BlinkMacSystemFont,sans-serif;box-shadow:0 4px 12px rgba(0,0,0,.2);';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = text;
+  clearTimeout(showPageToast._timer);
+  showPageToast._timer = setTimeout(() => toast.remove(), 6000);
 }
 
 // ========================================
@@ -1267,6 +1487,7 @@ function getLastAIMessage() {
       break;
     case PLATFORMS.CLAUDE:
       selectors = [
+        '.font-claude-response',
         '.font-claude-message',
         '[data-test-render-count]'
       ];
@@ -1287,6 +1508,9 @@ function getLastAIMessage() {
         'div[class*="message"]'
       ];
       break;
+    case PLATFORMS.DEEPSEEK:
+      selectors = ['.ds-markdown'];
+      break;
     default:
       selectors = ['[class*="assistant"]', '[class*="bot"]', '[class*="ai"]'];
       break;
@@ -1297,17 +1521,20 @@ function getLastAIMessage() {
     try {
       const messages = document.querySelectorAll(selector);
       if (messages.length > 0) {
-        // 找包含 CHECKPOINT 标记的元素
+        // 找包含 CHECKPOINT 标记的元素（跳过我们自己发出去的压缩 prompt——它里面也有这两个标记）
         for (let i = messages.length - 1; i >= 0; i--) {
           const text = messages[i].innerText || messages[i].textContent || '';
-          if (text.includes('<<<CHECKPOINT')) {
+          if (text.includes('<<<CHECKPOINT') && !isCompressionPromptEcho(text) && !isExistingCheckpoint(messages[i], text)) {
             console.log(`[getLastAIMessage] Found checkpoint in: ${selector}, index ${i}`);
             return messages[i];
           }
         }
-        // 如果没找到 checkpoint，返回最后一个
+        // 如果没找到 checkpoint，返回最后一个（同样不能是 prompt 本身）
+        const last = messages[messages.length - 1];
+        const lastText = last.innerText || last.textContent || '';
+        if (isCompressionPromptEcho(lastText) || isExistingCheckpoint(last, lastText)) continue;
         console.log(`[getLastAIMessage] Using last element from: ${selector}`);
-        return messages[messages.length - 1];
+        return last;
       }
     } catch (e) {
       continue;
@@ -1319,7 +1546,7 @@ function getLastAIMessage() {
   const allElements = document.querySelectorAll('div, p, section, article');
   for (let i = allElements.length - 1; i >= 0; i--) {
     const text = allElements[i].innerText || '';
-    if (text.includes('<<<CHECKPOINT_START>>>') && text.includes('<<<CHECKPOINT_END>>>')) {
+    if (text.includes('<<<CHECKPOINT_START>>>') && text.includes('<<<CHECKPOINT_END>>>') && !isCompressionPromptEcho(text) && !isExistingCheckpoint(allElements[i], text)) {
       console.log('[getLastAIMessage] Found checkpoint via fallback search');
       return allElements[i];
     }
@@ -1330,12 +1557,42 @@ function getLastAIMessage() {
 }
 
 
+// 对话里可能已经有上一次生成的 checkpoint。发送前把它们（元素和内容）记下来，
+// 否则等待时会立刻把旧的那份当成新结果。
+let existingCheckpointEls = new WeakSet();
+let existingCheckpointTexts = new Set();
+
+function snapshotExistingCheckpoints() {
+  existingCheckpointEls = new WeakSet();
+  existingCheckpointTexts = new Set();
+  document.querySelectorAll('div, p, section, article, model-response, message-content').forEach(el => {
+    const text = el.innerText || el.textContent || '';
+    if (text.includes('<<<CHECKPOINT_END>>>')) {
+      existingCheckpointEls.add(el);
+      const cp = extractCheckpoint(text);
+      if (cp) existingCheckpointTexts.add(cp);
+    }
+  });
+}
+
+function isExistingCheckpoint(el, text) {
+  if (existingCheckpointEls.has(el)) return true;
+  const cp = text.includes('<<<CHECKPOINT_END>>>') ? extractCheckpoint(text) : null;
+  return !!cp && existingCheckpointTexts.has(cp);
+}
+
+// 用户消息里的压缩 prompt 同样含有 START/END 标记；靠 prompt 独有的文字把它认出来
+function isCompressionPromptEcho(text) {
+  return text.includes('CONTEXT COMPRESSION TASK') || text.includes('SELF-CHECK before output');
+}
+
 function extractCheckpoint(fullText) {
   const startMarker = '<<<CHECKPOINT_START>>>';
   const endMarker = '<<<CHECKPOINT_END>>>';
 
-  const startIdx = fullText.indexOf(startMarker);
-  const endIdx = fullText.indexOf(endMarker);
+  // 取最后一对标记：AI 有时会在正文前先复述一遍"我会用 <<<CHECKPOINT_START>>> ... 输出"
+  const endIdx = fullText.lastIndexOf(endMarker);
+  const startIdx = endIdx === -1 ? -1 : fullText.lastIndexOf(startMarker, endIdx);
 
   if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
     // Extract content between markers (excluding the markers themselves)
@@ -1355,6 +1612,8 @@ function getMessageSelector(platform) {
       return '[data-message-author-role="assistant"]';
     case PLATFORMS.GEMINI:
       return '[class*="message"]';
+    case PLATFORMS.DEEPSEEK:
+      return '.ds-markdown';
     default:
       return 'div';
   }

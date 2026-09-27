@@ -4,23 +4,23 @@ Carry an AI conversation into the next one.
 
 [中文](README.md) · [English](README.en.md)
 
-[![Version](https://img.shields.io/badge/version-2.4.0-blue.svg)](manifest.json)
+[![Version](https://img.shields.io/badge/version-2.5.0-blue.svg)](manifest.json)
 [![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-brightgreen.svg)](https://chromewebstore.google.com/detail/lumiflow/onekhnkogijnmpddmceomhibhenhffaf)
 [![License](https://img.shields.io/badge/license-MIT-purple.svg)](LICENSE)
 
-LumiFlow is a Chrome extension for ChatGPT, Claude, and Gemini. It treats conversations as context that can be organized, saved, and moved forward when a chat gets too long, you switch models, or you start a new session.
+LumiFlow is a Chrome extension for ChatGPT, Claude, Gemini, and DeepSeek. It treats conversations as context that can be organized, saved, and moved forward when a chat gets too long, you switch models, or you start a new session.
 
 It currently supports two main workflows:
 
 - **Full conversation export**: download the current conversation as TXT or Markdown with speaker labels for archiving, reading, or further processing.
 - **Checkpoint migration**: distill the goals, decisions, constraints, examples, and progress that still matter into editable segments, then inject them into a new AI conversation.
 
-Current version: **v2.4.0**.
+Current version: **v2.5.0**.
 
 ## When it is useful
 
 - A conversation has become long and you want to continue in a fresh chat.
-- The same project moves between ChatGPT, Claude, and Gemini.
+- The same project moves between ChatGPT, Claude, Gemini, and DeepSeek.
 - You want a complete archive without pasting the entire history into the next model.
 - You want to choose, edit, and reorder exactly which context moves forward.
 
@@ -33,9 +33,9 @@ Open LumiFlow on a supported conversation page and click:
 - `DOWNLOAD TXT`
 - `DOWNLOAD MD`
 
-The export keeps speaker labels such as User / ChatGPT / Claude / Gemini.
+The export keeps speaker labels such as User / ChatGPT / Claude / Gemini / DeepSeek.
 
-For ChatGPT and Claude, LumiFlow first tries to read the current conversation from the platform data used by the web app. If that path is unavailable, it falls back to loading and extracting the page. Gemini is exported through page extraction.
+For ChatGPT and Claude, LumiFlow first tries to read the current conversation from the platform data used by the web app. If that path is unavailable, it falls back to loading and extracting the page. Gemini is exported through page extraction. DeepSeek first reads the conversation data used by the web app (final answers only, without the "DeepThink" reasoning) and falls back to page extraction.
 
 This workflow does not create checkpoint segments and does not require a model API key.
 
@@ -55,7 +55,7 @@ Switch to Manual Mode, select the material you want to preserve on the page, the
 
 Use it when you want precise control over context or do not want to use a third-party compression API.
 
-Segments can be edited, deleted, and reordered. When the checkpoint is ready, open a new ChatGPT / Claude / Gemini conversation and click `INJECT`. LumiFlow places the checkpoint into the input field; you remain in control of whether to send it.
+Segments can be edited, deleted, and reordered. When the checkpoint is ready, open a new ChatGPT / Claude / Gemini / DeepSeek conversation and click `INJECT`. LumiFlow places the checkpoint into the input field; you remain in control of whether to send it.
 
 ## Current capabilities
 
@@ -64,6 +64,7 @@ Segments can be edited, deleted, and reordered. When the checkpoint is ready, op
 | ChatGPT | Supported |
 | Claude | Supported |
 | Gemini | Supported |
+| DeepSeek (`chat.deepseek.com`) | Full export and inject supported; added in v2.5.0 |
 | Full TXT / Markdown conversation export | Supported |
 | Auto AI compression | Supported; requires your Gemini / OpenAI / Anthropic API key |
 | Manual ABSORB | Supported; no API key required |
@@ -130,7 +131,8 @@ LumiFlow is a Manifest V3 Chrome extension. The main pieces are:
 
 - `content.js`: platform detection, conversation extraction, text selection, and input-field injection.
 - `popup.js` / `popup.html`: extension UI, segment management, export, and compression workflows.
-- `background.js`: user-authorized requests to Gemini / OpenAI / Anthropic APIs.
+- `background.js`: user-authorized requests to Gemini / OpenAI / Anthropic APIs; runs the API compression flow.
+- `prompts.js`: multilingual prompt templates for API compression.
 - `manifest.json`: permissions, supported domains, and keyboard shortcuts.
 
 ## Development and contribution

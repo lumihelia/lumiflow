@@ -2,7 +2,7 @@
 
 [中文](USER_GUIDE_CN.md) · [English](USER_GUIDE_EN.md)
 
-For **LumiFlow v2.4.0**.
+For **LumiFlow v2.5.0**.
 
 LumiFlow currently supports two main paths:
 
@@ -15,7 +15,7 @@ LumiFlow currently supports two main paths:
 
 Install directly from [LumiFlow - Chrome Web Store](https://chromewebstore.google.com/detail/lumiflow/onekhnkogijnmpddmceomhibhenhffaf).
 
-After installation, pin LumiFlow to the browser toolbar if you want quick access from ChatGPT, Claude, and Gemini conversation pages.
+After installation, pin LumiFlow to the browser toolbar if you want quick access from ChatGPT, Claude, Gemini, and DeepSeek conversation pages.
 
 ### Load from source
 
@@ -31,6 +31,7 @@ Open `chrome://extensions/`, enable **Developer mode**, click **Load unpacked**,
 - ChatGPT: `chatgpt.com` / `chat.openai.com`
 - Claude: `claude.ai`
 - Gemini: `gemini.google.com`
+- DeepSeek: `chat.deepseek.com`
 
 Use LumiFlow on an actual conversation page. Home pages, settings pages, and other non-conversation routes may not contain extractable chat content.
 
@@ -41,7 +42,7 @@ Use either:
 - `DOWNLOAD TXT`
 - `DOWNLOAD MD`
 
-The exported file keeps speaker labels such as User, ChatGPT, Claude, and Gemini.
+The exported file keeps speaker labels such as User, ChatGPT, Claude, Gemini, and DeepSeek.
 
 This workflow:
 
@@ -50,7 +51,7 @@ This workflow:
 - does not require a model API key;
 - is useful for archiving, reading, backups, or downstream processing.
 
-For ChatGPT and Claude, LumiFlow first tries to read the current conversation from the platform data used by the web app. If that path is unavailable, it falls back to loading and extracting the page. Gemini uses page extraction.
+For ChatGPT and Claude, LumiFlow first tries to read the current conversation from the platform data used by the web app. If that path is unavailable, it falls back to loading and extracting the page. Gemini uses page extraction. DeepSeek first reads the conversation data used by the web app (final answers only, without DeepThink reasoning) and falls back to page extraction.
 
 If an export is obviously incomplete, refresh the conversation page and retry. If the problem persists, see [Troubleshooting](TROUBLESHOOTING.md).
 
@@ -64,7 +65,7 @@ Use Auto Mode when a conversation is long and you want to quickly extract goals,
 
 Steps:
 
-1. Open LumiFlow on a ChatGPT / Claude / Gemini conversation page.
+1. Open LumiFlow on a ChatGPT / Claude / Gemini / DeepSeek conversation page.
 2. Open Settings.
 3. Enable **API Compression**.
 4. Choose Gemini, OpenAI, or Anthropic.
@@ -105,7 +106,7 @@ Editing is an important part of the workflow. Auto Mode output is still yours to
 
 ## Inject the checkpoint into a new conversation
 
-1. Open a new ChatGPT / Claude / Gemini conversation.
+1. Open a new ChatGPT / Claude / Gemini / DeepSeek conversation.
 2. Open LumiFlow.
 3. Check that the segments are ready.
 4. Click `INJECT`.

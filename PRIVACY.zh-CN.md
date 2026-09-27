@@ -44,7 +44,7 @@ LumiFlow 通过 Chrome extension storage 保存：
 
 为了导出完整对话或创建 checkpoint，LumiFlow 需要读取受支持 AI 平台上的当前会话。
 
-ChatGPT 和 Claude 会优先读取网页应用当前使用的会话数据，并可以在这条路径不可用时回退到页面提取。Gemini 使用页面提取。
+ChatGPT 和 Claude 会优先读取网页应用当前使用的会话数据，并可以在这条路径不可用时回退到页面提取。Gemini 使用页面提取。DeepSeek 会借助当前标签页里已有的登录状态，读取网页应用自身的会话接口，并可以在这条路径不可用时回退到页面提取。
 
 这些读取发生在你已经登录并使用相应 AI 服务的浏览器会话中。提取出的对话不会被发送到 LumiFlow 自有服务器。
 
@@ -72,6 +72,7 @@ ChatGPT 和 Claude 会优先读取网页应用当前使用的会话数据，并�
 | `chatgpt.com`, `chat.openai.com` | 在 ChatGPT 读取对话与注入上下文 |
 | `claude.ai` | 在 Claude 读取对话与注入上下文 |
 | `gemini.google.com` | 在 Gemini 读取对话与注入上下文 |
+| `chat.deepseek.com` | 在 DeepSeek 读取对话与注入上下文 |
 | `api.openai.com` | 发送由用户授权的 OpenAI compression 请求 |
 | `api.anthropic.com` | 发送由用户授权的 Anthropic compression 请求 |
 | `generativelanguage.googleapis.com` | 发送由用户授权的 Gemini compression 请求 |
