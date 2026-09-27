@@ -233,8 +233,24 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 async function handleKeyboardInject(sendResponse) {
   try {
     // Get last checkpoint from storage
-    const result = await chrome.storage.local.get(['segments']);
+    const result = await chrome.storage.local.get(['segments', 'lastCheckpoint']);
     const segments = result.segments || [];
+
+    // 用快捷键压缩后没打开过 popup 时，checkpoint 还停在 lastCheckpoint 里，先把它收进 segments
+    const pending = result.lastCheckpoint;
+    if (pending && pending.checkpoint && !segments.some(s => s.content === pending.checkpoint)) {
+      segments.push({
+        id: Date.now() + Math.random(),
+        content: pending.checkpoint,
+        platform: pending.platform || 'unknown',
+        timestamp: pending.timestamp || new Date().toISOString(),
+        collapsed: pending.checkpoint.length > 200
+      });
+      await chrome.storage.local.set({ segments });
+    }
+    if (pending) {
+      await chrome.storage.local.remove('lastCheckpoint');
+    }
 
     if (segments.length === 0) {
       console.log('[LumiFlow] No segments to inject');
@@ -333,6 +349,7 @@ async function handleAutoCompress(request, sendResponse) {
           }
 
           console.log('[CONTENT] Checkpoint saved successfully!');
+          showPageToast('LumiFlow: checkpoint saved. Open a new chat and click INJECT.');
           console.log('[CONTENT] Length:', response.length, 'chars');
 
           sendResponse({
@@ -344,6 +361,7 @@ async function handleAutoCompress(request, sendResponse) {
         });
       } catch (error) {
         console.error('[AUTO] Timeout waiting for response:', error.message);
+        showPageToast('LumiFlow: timed out. Select the checkpoint and use Manual Absorb.');
         sendResponse({
           status: 'timeout',
           message: 'AI response timeout. Please select the response and use Manual Absorb.'
@@ -447,10 +465,12 @@ function handleInject(text, sendResponse) {
 // GET STATS HANDLER
 // ========================================
 
-function handleGetStats(sendResponse) {
+// 统计和下载使用同一条数据来源：先读平台接口，失败再退回页面提取。
+// 只读页面的话，长对话里早期消息已被懒加载卸载，数量会明显偏少。
+async function handleGetStats(sendResponse) {
   try {
     const platform = detectPlatform();
-    const messages = extractConversation();
+    const messages = (await fetchConversationViaAPI(platform)) || extractConversation();
     const stats = getConversationStats(messages);
 
     sendResponse({
@@ -1319,9 +1339,24 @@ function findSendButton() {
 // ========================================
 
 function showWaitingIndicator() {
-  // 可以在这里添加页面上的等待提示
-  // 目前仅记录日志
   console.log('[LumiFlow] Waiting for AI to complete response...');
+  showPageToast('LumiFlow: waiting for the checkpoint…');
+}
+
+// popup 在等待期间经常被关掉（点一下页面就会关），所以直接在页面上提示进度
+function showPageToast(text) {
+  let toast = document.getElementById('lumiflow-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'lumiflow-toast';
+    toast.style.cssText = 'position:fixed;right:20px;bottom:20px;z-index:2147483647;' +
+      'padding:10px 14px;border-radius:8px;background:#4a4270;color:#fff;' +
+      'font:13px/1.4 -apple-system,BlinkMacSystemFont,sans-serif;box-shadow:0 4px 12px rgba(0,0,0,.2);';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = text;
+  clearTimeout(showPageToast._timer);
+  showPageToast._timer = setTimeout(() => toast.remove(), 6000);
 }
 
 // ========================================
@@ -1441,6 +1476,7 @@ function getLastAIMessage() {
       break;
     case PLATFORMS.CLAUDE:
       selectors = [
+        '.font-claude-response',
         '.font-claude-message',
         '[data-test-render-count]'
       ];
@@ -1474,17 +1510,20 @@ function getLastAIMessage() {
     try {
       const messages = document.querySelectorAll(selector);
       if (messages.length > 0) {
-        // 找包含 CHECKPOINT 标记的元素
+        // 找包含 CHECKPOINT 标记的元素（跳过我们自己发出去的压缩 prompt——它里面也有这两个标记）
         for (let i = messages.length - 1; i >= 0; i--) {
           const text = messages[i].innerText || messages[i].textContent || '';
-          if (text.includes('<<<CHECKPOINT')) {
+          if (text.includes('<<<CHECKPOINT') && !isCompressionPromptEcho(text)) {
             console.log(`[getLastAIMessage] Found checkpoint in: ${selector}, index ${i}`);
             return messages[i];
           }
         }
-        // 如果没找到 checkpoint，返回最后一个
+        // 如果没找到 checkpoint，返回最后一个（同样不能是 prompt 本身）
+        const last = messages[messages.length - 1];
+        const lastText = last.innerText || last.textContent || '';
+        if (isCompressionPromptEcho(lastText)) continue;
         console.log(`[getLastAIMessage] Using last element from: ${selector}`);
-        return messages[messages.length - 1];
+        return last;
       }
     } catch (e) {
       continue;
@@ -1496,7 +1535,7 @@ function getLastAIMessage() {
   const allElements = document.querySelectorAll('div, p, section, article');
   for (let i = allElements.length - 1; i >= 0; i--) {
     const text = allElements[i].innerText || '';
-    if (text.includes('<<<CHECKPOINT_START>>>') && text.includes('<<<CHECKPOINT_END>>>')) {
+    if (text.includes('<<<CHECKPOINT_START>>>') && text.includes('<<<CHECKPOINT_END>>>') && !isCompressionPromptEcho(text)) {
       console.log('[getLastAIMessage] Found checkpoint via fallback search');
       return allElements[i];
     }
@@ -1506,6 +1545,11 @@ function getLastAIMessage() {
   return null;
 }
 
+
+// 用户消息里的压缩 prompt 同样含有 START/END 标记；靠 prompt 独有的文字把它认出来
+function isCompressionPromptEcho(text) {
+  return text.includes('CONTEXT COMPRESSION TASK') || text.includes('SELF-CHECK before output');
+}
 
 function extractCheckpoint(fullText) {
   const startMarker = '<<<CHECKPOINT_START>>>';

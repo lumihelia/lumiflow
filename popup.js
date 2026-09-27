@@ -7,7 +7,7 @@
  */
 
 // ========================================
-// LumiFlow v2.4.0 - Popup Script
+// LumiFlow v2.5.0 - Popup Script
 // ========================================
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -53,7 +53,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Load segments
         await loadSegments();
+
+        // popup 在等待 AI 生成期间关掉的话，checkpoint 只存进了 lastCheckpoint，这里接回来
+        await consumePendingCheckpoint();
     }
+
+    // 页面上的 content script 把 checkpoint 写进 lastCheckpoint 后，popup 若还开着就立刻收进 segments
+    chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === 'local' && changes.lastCheckpoint && changes.lastCheckpoint.newValue) {
+            consumePendingCheckpoint();
+        }
+    });
 
     // ========================================
     // MODE TOGGLE
@@ -242,7 +252,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // Try to use response if available
             if (response && response.status === 'success' && response.checkpoint) {
                 console.log('[DEBUG] Got checkpoint from response, length:', response.checkpoint.length);
-                addSegment(response.checkpoint, response.platform);
+                if (!hasSegmentWithContent(response.checkpoint)) {
+                    addSegment(response.checkpoint, response.platform);
+                }
+                chrome.storage.local.remove('lastCheckpoint');
                 showMessage("Checkpoint created!");
                 checkpointAdded = true;
             } else if (response && response.status === 'pending_send') {
@@ -257,7 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('[DEBUG] Waiting 3s then checking storage fallback...');
                 await sleep(3000);  // Give content.js time to save
 
-                const storageSuccess = await checkStorageFallback();
+                const storageSuccess = await consumePendingCheckpoint();
                 if (storageSuccess) {
                     checkpointAdded = true;
                 }
@@ -272,35 +285,29 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 从 storage 读取 checkpoint 的备用方案
-    async function checkStorageFallback() {
-        console.log('[DEBUG] checkStorageFallback called');
-        const data = await getFromStorage('lastCheckpoint');
-        
-        if (!data || !data.checkpoint) {
-            console.log('[DEBUG] No checkpoint in storage');
-            return false;
-        }
-        
-        console.log('[DEBUG] Found checkpoint in storage, length:', data.checkpoint.length);
-        
-        // 检查时间戳，确保是最近的（5分钟内）
-        const checkpointTime = new Date(data.timestamp).getTime();
-        const now = Date.now();
-        const fiveMinutes = 5 * 60 * 1000;
+    function hasSegmentWithContent(content) {
+        return segments.some(s => s.content === content);
+    }
 
-        if (now - checkpointTime < fiveMinutes) {
-            console.log('[DEBUG] Checkpoint is recent, adding to segments');
-            addSegment(data.checkpoint, data.platform);
-            showMessage("Checkpoint retrieved!");
-            
-            // 清除已使用的 checkpoint
-            chrome.storage.local.remove('lastCheckpoint');
-            return true;
-        } else {
-            console.log('[DEBUG] Checkpoint is too old (>5min)');
+    // 把 content script 存下的 checkpoint（lastCheckpoint）收进 segments，收完即删，避免重复
+    async function consumePendingCheckpoint() {
+        const data = await getFromStorage('lastCheckpoint');
+        if (!data || !data.checkpoint) return false;
+
+        chrome.storage.local.remove('lastCheckpoint');
+
+        // 太旧的 checkpoint（超过 30 分钟）视为过期，丢弃
+        const age = Date.now() - new Date(data.timestamp).getTime();
+        if (!(age < 30 * 60 * 1000)) {
+            console.log('[DEBUG] Pending checkpoint expired, discarded');
             return false;
         }
+
+        if (!hasSegmentWithContent(data.checkpoint)) {
+            addSegment(data.checkpoint, data.platform);
+            showMessage("Checkpoint retrieved! Open a new chat and click INJECT.");
+        }
+        return true;
     }
 
     // ========================================
