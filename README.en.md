@@ -45,7 +45,12 @@ A checkpoint keeps the information the next conversation still needs.
 
 #### Auto Mode
 
-Click `COMPRESS`. LumiFlow uses the Gemini, OpenAI, or Anthropic API that you configure to turn the current conversation into a structured checkpoint.
+Click `COMPRESS`. Auto Mode has two routes:
+
+- **Auto in-chat (no extension API key)**: when API Compression is off or no key is saved, LumiFlow inserts a compression prompt into the current AI conversation and attempts to send it, then waits for that platform's checkpoint. If prompted to send it yourself, do so and follow the Manual `ABSORB` instruction.
+- **Auto API (optional)**: when API Compression is enabled and a valid key is saved, LumiFlow compresses through your configured Gemini, OpenAI, or Anthropic API in the background without sending a compression prompt into the current chat.
+
+Saved results from either route can be picked up as segments when you reopen the popup; the API route keeps running after the popup closes.
 
 Use it for long conversations when you want a fast summary of goals, state, decisions, examples, and next steps.
 
@@ -53,7 +58,7 @@ Use it for long conversations when you want a fast summary of goals, state, deci
 
 Switch to Manual Mode, select the material you want to preserve on the page, then click `ABSORB`.
 
-Use it when you want precise control over context or do not want to use a third-party compression API.
+Use it when you want precise control over context. `ABSORB` saves selected text without calling a model to compress it.
 
 Segments can be edited, deleted, and reordered. When the checkpoint is ready, open a new ChatGPT / Claude / Gemini / DeepSeek conversation and click `INJECT`. LumiFlow places the checkpoint into the input field; you remain in control of whether to send it.
 
@@ -66,7 +71,8 @@ Segments can be edited, deleted, and reordered. When the checkpoint is ready, op
 | Gemini | Supported |
 | DeepSeek (`chat.deepseek.com`) | Full export and inject supported; added in v2.5.0 |
 | Full TXT / Markdown conversation export | Supported |
-| Auto AI compression | Supported; requires your Gemini / OpenAI / Anthropic API key |
+| Auto in-chat compression | Supported; uses the current AI web conversation, no extension API key |
+| Auto API compression | Optional; enable API Compression and save your own Gemini / OpenAI / Anthropic API key |
 | Manual ABSORB | Supported; no API key required |
 | Edit / delete / reorder segments | Supported |
 | Checkpoint Markdown / JSON export | Supported |
@@ -99,7 +105,9 @@ Then:
 
 LumiFlow itself has no subscription and does not impose a usage-count limit.
 
-Auto Mode sends compression requests directly to the API provider you choose. You use your own API key, so the provider's quota, pricing, and terms still apply.
+Auto in-chat uses your current AI website account. Its login requirements, subscription, quota, and terms still apply; this does not mean platform usage is necessarily free.
+
+Auto API sends compression requests directly to the API provider you choose. You use your own API key, so the provider's quota, pricing, and terms still apply.
 
 Manual Mode, full conversation export, and local segment management do not require a model API.
 
@@ -107,7 +115,7 @@ Manual Mode, full conversation export, and local segment management do not requi
 
 LumiFlow currently has no hosted backend, account system, analytics, or usage tracking.
 
-Segments, settings, and saved API keys are stored locally in the browser. When API compression is enabled, the conversation content needed for compression is sent directly from the extension to the selected Google / OpenAI / Anthropic API. It does not pass through a LumiFlow server.
+Segments, settings, and saved API keys are stored locally in the browser. Auto in-chat adds the compression prompt to the current AI web conversation for that platform to process. When API compression is enabled, the conversation content needed for compression is sent directly from the extension to the selected Google / OpenAI / Anthropic API. It does not pass through a LumiFlow server.
 
 Read the full policy:
 

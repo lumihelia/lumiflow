@@ -63,18 +63,25 @@ A checkpoint stores what the next conversation still needs to know. It contains 
 
 Use Auto Mode when a conversation is long and you want to quickly extract goals, current state, decisions, constraints, examples, failed attempts, and next steps.
 
-Steps:
+#### Auto in-chat: use the current web conversation
 
-1. Open LumiFlow on a ChatGPT / Claude / Gemini / DeepSeek conversation page.
-2. Open Settings.
-3. Enable **API Compression**.
-4. Choose Gemini, OpenAI, or Anthropic.
-5. Enter your own API key and save it.
-6. Return to the main view and keep Auto Mode enabled.
-7. Click `COMPRESS`.
-8. The result appears in the Checkpoint Segments area.
+1. Open LumiFlow on a supported AI conversation page and keep Auto Mode enabled.
+2. Turn **Enable API Compression** off in Settings; this route is also used when no API key is saved.
+3. Click `COMPRESS`. The extension inserts a compression prompt into the current chat and attempts to send it.
+4. Wait for the AI checkpoint. If you see "Prompt injected. Click Send", send it yourself and use Manual `ABSORB` after the reply finishes.
+5. If clicking the page closes the popup, reopen LumiFlow after the result is saved to pick it up as Checkpoint Segments. If it is still missing, select the AI checkpoint reply and use Manual `ABSORB`.
 
-Auto Mode sends the material needed for compression directly to the API provider you select. Your API key and LumiFlow settings are stored locally in the browser. The provider's own quota, pricing, and privacy terms still apply.
+No extension API key is required, but this uses your current website account. Its login requirements, subscription, quota, and terms still apply.
+
+#### Auto API: optional background compression
+
+1. Open LumiFlow Settings on the conversation page.
+2. Enable **API Compression** and choose Gemini, OpenAI, or Anthropic.
+3. Enter your own valid API key and save it.
+4. Return to Auto Mode and click `COMPRESS`.
+5. Compression runs in the background. You can close the popup and reopen it after completion to view the segments.
+
+This route is used only when API Compression is enabled and a key is saved. Content goes directly to the selected API provider, without sending a compression prompt into the current chat. The key and settings stay in local browser storage; the provider's quota, pricing, and privacy terms still apply.
 
 ### Manual Mode: choose what moves forward
 
@@ -88,7 +95,7 @@ Steps:
 4. Click `ABSORB`.
 5. Select more material and repeat as needed.
 
-Each absorbed selection becomes a segment.
+Each absorbed selection becomes a segment without calling a model to compress it.
 
 ## Manage checkpoint segments
 
@@ -123,7 +130,7 @@ LumiFlow supports:
 - OpenAI API
 - Anthropic API
 
-API compression is optional. Manual Mode, full conversation export, and local segment management do not require a model API.
+API compression is optional. Auto in-chat, Manual Mode, full conversation export, and local segment management require no extension API key; Auto in-chat still uses the website platform's model and account quota.
 
 ### Cost
 
@@ -156,16 +163,14 @@ Chrome or another extension may already use the same shortcut. If a shortcut doe
 Check that:
 
 - you are on a supported AI conversation page;
-- API compression is enabled;
-- the provider and API key are saved;
-- the provider still has available quota;
-- your network can reach the selected API.
+- for Auto in-chat: your website account is signed in and able to send messages; check whether the prompt was sent or the AI is still generating, then reopen the popup after the result is saved;
+- for Auto API: API Compression is enabled, the provider and valid key are saved, and the API quota and network are available.
 
 If you need to keep moving, switch to Manual Mode and use `ABSORB` to build the checkpoint yourself.
 
 ### INJECT does not place content in the input field
 
-Click the target AI input field first so it has focus, then try `INJECT` again. If the page was just refreshed, allow the page and extension content script to finish loading before retrying.
+Click the target AI input field first so it has focus, then try `INJECT` again. If the page was just refreshed, allow the page and extension content script to finish loading before retrying. If no input box is found, the popup attempts to copy the checkpoint to the clipboard; after a copied confirmation, paste and review it yourself before sending.
 
 ### Full export only contains part of the conversation
 

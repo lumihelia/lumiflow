@@ -63,18 +63,25 @@ Checkpoint 保存的是“下一段对话仍然需要知道什么”。它由一
 
 适合：对话很长，希望快速提取目标、当前状态、重要决定、约束、例子、失败尝试和下一步。
 
-使用步骤：
+#### Auto in-chat：使用当前网页对话
 
-1. 在 ChatGPT / Claude / Gemini / DeepSeek 的对话页面打开 LumiFlow。
-2. 点击右上角设置按钮。
-3. 开启 **Enable API Compression**。
-4. 选择 Gemini、OpenAI 或 Anthropic。
-5. 填入你自己的 API key 并保存。
-6. 回到主界面，保持 Auto Mode。
-7. 点击 `COMPRESS`。
-8. 压缩完成后，结果会进入 Checkpoint Segments 区域。
+1. 在支持的 AI 对话页打开 LumiFlow，保持 Auto Mode。
+2. 关闭 Settings 中的 **Enable API Compression**；没有保存 API key 时也走此路径。
+3. 点击 `COMPRESS`，扩展会在当前对话中插入压缩 prompt 并尝试发送。
+4. 等待 AI 生成 checkpoint。若提示 “Prompt injected. Click Send”，请手动发送，等回复完成后用 Manual `ABSORB` 保存。
+5. 若 popup 因点击页面关闭，生成结果保存后重新打开 LumiFlow，即可接回 Checkpoint Segments。仍未出现时可选择 AI 的 checkpoint 回复并使用 Manual `ABSORB`。
 
-Auto Mode 会把需要压缩的内容直接发送给你选择的 API 提供商。API key 与 LumiFlow 设置保存在浏览器本地；Google / OpenAI / Anthropic 自己的额度、计费和隐私政策仍然适用。
+这条路径无需扩展 API key，但会使用当前网页账号；平台的登录状态、订阅、额度和服务条款仍然适用。
+
+#### Auto API：可选的后台压缩
+
+1. 在对话页面打开 LumiFlow 的 Settings。
+2. 开启 **Enable API Compression**，选择 Gemini、OpenAI 或 Anthropic。
+3. 填入自己的有效 API key 并保存。
+4. 回到 Auto Mode，点击 `COMPRESS`。
+5. 压缩在后台完成；可以关闭 popup，完成后重新打开查看 segments。
+
+只有 API Compression 已开启且保存了 key 才使用此路径。内容会直接发送给所选 API 提供商，不在当前对话中发送压缩 prompt。API key 与设置保存在浏览器本地；提供商的额度、计费和隐私政策仍然适用。
 
 ### Manual Mode：手动选择需要带走的内容
 
@@ -88,7 +95,7 @@ Auto Mode 会把需要压缩的内容直接发送给你选择的 API 提供商�
 4. 点击 `ABSORB`。
 5. 继续选择其他片段并重复 `ABSORB`。
 
-每次吸收的内容都会成为一个 segment。
+每次吸收的内容都会成为一个 segment，不调用模型压缩。
 
 ## 管理 Checkpoint Segments
 
@@ -123,7 +130,7 @@ LumiFlow 支持：
 - OpenAI API
 - Anthropic API
 
-API compression 是可选能力。Manual Mode、完整对话导出和本地 segment 管理不依赖模型 API。
+API compression 是可选能力。Auto in-chat、Manual Mode、完整对话导出和本地 segment 管理都无需扩展 API key；Auto in-chat 仍会使用网页平台的模型与账号额度。
 
 ### 关于费用
 
@@ -156,16 +163,14 @@ API key 保存在 `chrome.storage.local`。LumiFlow 当前没有自己的后端�
 先确认：
 
 - 当前页面是受支持的 AI 对话页；
-- API compression 已开启；
-- API provider 与 key 已保存；
-- 第三方 API 仍有可用额度；
-- 网络可以访问相应 API。
+- Auto in-chat：网页账号已登录且可发送消息；prompt 是否已发送、AI 是否仍在生成；结果保存后重新打开 popup；
+- Auto API：API Compression 已开启、provider 与有效 key 已保存，API 额度与网络可用。
 
 如果只想继续工作，可以切到 Manual Mode，用 `ABSORB` 手动整理 checkpoint。
 
 ### INJECT 后输入框没有内容
 
-先点击目标 AI 的输入框让它获得焦点，再重新点击 `INJECT`。如果页面刚刷新，等页面和扩展脚本加载完成后再试。
+先点击目标 AI 的输入框让它获得焦点，再重新点击 `INJECT`。如果页面刚刷新，等页面和扩展脚本加载完成后再试。找不到输入框时，popup 会尝试把 checkpoint 复制到剪贴板；看到已复制提示后手动粘贴并检查，再决定是否发送。
 
 ### 完整导出只有部分消息
 
