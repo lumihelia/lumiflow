@@ -2,7 +2,7 @@
 
 [中文](TROUBLESHOOTING.zh-CN.md) · [English](TROUBLESHOOTING.md)
 
-For **LumiFlow v2.4.0**.
+For **LumiFlow v2.5.0**.
 
 Start with the simplest recovery step: refresh the AI conversation page, wait for the conversation UI to finish loading, then try the LumiFlow action again.
 
@@ -13,6 +13,7 @@ LumiFlow currently supports conversation pages on:
 - `chatgpt.com` / `chat.openai.com`
 - `claude.ai`
 - `gemini.google.com`
+- `chat.deepseek.com`
 
 Home pages, settings pages, login pages, or other routes without an active conversation may not provide extractable messages or an injectable input field.
 
@@ -50,9 +51,23 @@ Gemini export depends on the rendered page structure. If Gemini changes its mark
 
 Refresh first. If the problem is reproducible after a refresh, report it with a screenshot and relevant console logs.
 
+### DeepSeek
+
+The extension first reads the current web conversation data, exporting final answers without DeepThink reasoning, then falls back to page extraction if needed. Confirm that you are signed in and the correct conversation is open, then refresh and retry.
+
 ## COMPRESS fails
 
-Auto Mode requires a configured third-party API.
+First identify the Auto route: an API is used only when **Enable API Compression** is on and a key is saved; otherwise the checkpoint is generated in the current web conversation.
+
+### Auto in-chat
+
+- Confirm that the website account is signed in, can send messages, and has available platform quota.
+- Check whether the compression prompt was sent. If you see "Prompt injected. Click Send", send it yourself and use Manual `ABSORB` after the reply finishes.
+- Keep the original conversation page open and wait for the AI. DeepSeek has a longer 90-second wait window; the popup countdown is not proof that generation has finished.
+- If the popup closes, reopen it to pick up a saved checkpoint. Do this promptly: pending checkpoints older than 30 minutes expire.
+- If the AI replied but segments are still empty, select that checkpoint reply and use Manual `ABSORB`; configuring an API is not a prerequisite.
+
+### Auto API
 
 Check:
 
@@ -65,15 +80,17 @@ Check:
 
 LumiFlow supports Gemini, OpenAI, and Anthropic API compression.
 
-If API compression is unavailable, switch to Manual Mode and use `ABSORB` to create segments without a model API.
+API compression runs in the background even if the popup closes; reopen it after completion to see the result. A failed API request does not automatically retry in-chat. You can disable API Compression and start an in-chat request, or switch to Manual Mode and use `ABSORB` to save selected text without model compression.
 
 ## INJECT does not place text in the input field
 
-1. Open the target ChatGPT / Claude / Gemini conversation.
+1. Open the target ChatGPT / Claude / Gemini / DeepSeek conversation.
 2. Click the message input field so it has focus.
 3. Open LumiFlow and click `INJECT` again.
 4. If the page was just refreshed, wait briefly for its editor and the extension content script to initialize.
 5. Refresh the page if the editor has changed or stopped responding.
+
+If no input box is found, the popup attempts to copy the checkpoint to the clipboard. After a copied confirmation, paste it into the target input and review it; if copying fails too, click the input box and retry.
 
 AI services regularly change their editors. A reproducible injection failure after a platform UI update may require a compatibility fix in LumiFlow.
 
