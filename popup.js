@@ -7,7 +7,7 @@
  */
 
 // ========================================
-// LumiFlow v2.5.0 - Popup Script
+// LumiFlow v2.6.0 - Popup Script
 // ========================================
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1464,9 +1464,9 @@ document.addEventListener('DOMContentLoaded', () => {
             .replace(/\n{3,}/g, '\n\n')
             // Step 2: Trim overall whitespace
             .trim()
-            // Step 3: Clean up each line (remove leading/trailing spaces)
+            // Step 3: Remove trailing spaces only — leading spaces are code/list indentation
             .split('\n')
-            .map(line => line.trim())
+            .map(line => line.trimEnd())
             .join('\n')
             // Step 4: Final safety - max 2 consecutive newlines
             .replace(/\n{3,}/g, '\n\n');

@@ -118,88 +118,112 @@ async function handleAPICall(request) {
     }
 }
 
+// 模型名统一放在这里。2024 年写死的 gemini-2.0-flash / gpt-4-turbo-preview /
+// claude-3-5-sonnet-20241022 都已停用，压缩会直接失败。
+const MODELS = {
+    // 官方别名：始终指向当前的 Flash 模型，切换前 Google 会提前两周通知
+    gemini: 'gemini-flash-latest',
+    // OpenAI 推荐的性价比档（Responses API）
+    openai: 'gpt-6.1-sol',
+    anthropic: 'claude-opus-5-5'
+};
+
+// checkpoint 通常几百到一两千字；留足空间，避免长对话的 checkpoint 被截断
+const MAX_OUTPUT_TOKENS = 16000;
+
+async function readErrorMessage(response, providerName) {
+    const errorText = await response.text();
+    let message = '';
+    try {
+        const errorData = JSON.parse(errorText);
+        message = (errorData.error && (errorData.error.message || errorData.error.type)) || '';
+    } catch (e) {
+        if (errorText.includes('<!DOCTYPE') || errorText.includes('<html')) {
+            message = 'returned an HTML error page. Check API key or network.';
+        } else {
+            message = errorText.substring(0, 200);
+        }
+    }
+    return `${providerName} API error (${response.status}): ${message || response.statusText}`;
+}
+
 // ========================================
 // GEMINI API
 // ========================================
 
 async function callGeminiAPI(prompt, apiKey) {
-    const requestBody = JSON.stringify({
-        contents: [{
-            parts: [{ text: prompt }]
-        }]
-    });
-
-    console.log('[GEMINI] Request body length:', requestBody.length, 'chars');
-    console.log('[GEMINI] Prompt length:', prompt.length, 'chars');
-
     const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${MODELS.gemini}:generateContent`,
         {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Content-Length': requestBody.length.toString()
+                'x-goog-api-key': apiKey
             },
-            body: requestBody
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { maxOutputTokens: MAX_OUTPUT_TOKENS }
+            })
         }
     );
 
     if (!response.ok) {
-        console.error('[GEMINI] API request failed:', response.status, response.statusText);
-        const errorText = await response.text();
-        console.error('[GEMINI] Error response (first 500 chars):', errorText.substring(0, 500));
-
-        let errorData;
-        try {
-            errorData = JSON.parse(errorText);
-            throw new Error(errorData.error?.message || `Gemini API error (${response.status})`);
-        } catch (e) {
-            // Not JSON, probably HTML error page
-            if (errorText.includes('<!DOCTYPE') || errorText.includes('<html')) {
-                throw new Error(`Gemini API returned HTML error page (${response.status}). Check API key or network.`);
-            }
-            throw new Error(`Gemini API failed (${response.status}): ${errorText.substring(0, 200)}`);
-        }
+        throw new Error(await readErrorMessage(response, 'Gemini'));
     }
 
     const data = await response.json();
+    const parts = data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts;
+    // 跳过思考过程（thought: true），只取正文
+    const text = (parts || [])
+        .filter(p => typeof p.text === 'string' && !p.thought)
+        .map(p => p.text)
+        .join('');
 
-    if (!data.candidates || !data.candidates[0]) {
+    if (!text) {
         throw new Error('Gemini returned empty response');
     }
-
-    return data.candidates[0].content.parts[0].text;
+    return text;
 }
 
 // ========================================
-// OPENAI API
+// OPENAI API (Responses API)
 // ========================================
 
 async function callOpenAIAPI(prompt, apiKey) {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/responses', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-            model: 'gpt-4-turbo-preview',
-            messages: [{ role: 'user', content: prompt }],
-            max_tokens: 2000
+            model: MODELS.openai,
+            input: prompt,
+            max_output_tokens: MAX_OUTPUT_TOKENS
         })
     });
 
     if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || 'OpenAI API request failed');
+        throw new Error(await readErrorMessage(response, 'OpenAI'));
     }
 
     const data = await response.json();
-    return data.choices[0].message.content;
+    // output 里可能先有 reasoning 项，正文在 type === 'message' 的项里
+    const text = (data.output || [])
+        .filter(item => item.type === 'message' && Array.isArray(item.content))
+        .flatMap(item => item.content)
+        .filter(c => c.type === 'output_text' && typeof c.text === 'string')
+        .map(c => c.text)
+        .join('');
+
+    if (!text) {
+        throw new Error('OpenAI returned empty response');
+    }
+    return text;
 }
 
 // ========================================
-// ANTHROPIC API (Now works via Service Worker!)
+// ANTHROPIC API
 // ========================================
 
 async function callAnthropicAPI(prompt, apiKey) {
@@ -209,20 +233,35 @@ async function callAnthropicAPI(prompt, apiKey) {
             'Content-Type': 'application/json',
             'x-api-key': apiKey,
             'anthropic-version': '2023-06-01',
-            'anthropic-dangerous-direct-browser-access': 'true'
+            'anthropic-dangerous-direct-browser-access': 'true',
+            // 安全分类器拒绝时，由服务端自动换用合适的模型重试
+            'anthropic-beta': 'server-side-fallback-2026-07-01'
         },
         body: JSON.stringify({
-            model: 'claude-3-5-sonnet-20241022',
-            max_tokens: 2000,
+            model: MODELS.anthropic,
+            max_tokens: MAX_OUTPUT_TOKENS,
+            fallbacks: 'default',
             messages: [{ role: 'user', content: prompt }]
         })
     });
 
     if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || 'Anthropic API request failed');
+        throw new Error(await readErrorMessage(response, 'Anthropic'));
     }
 
     const data = await response.json();
-    return data.content[0].text;
+    if (data.stop_reason === 'refusal') {
+        throw new Error('Anthropic declined this request. Try Manual Mode for this conversation.');
+    }
+
+    // 新模型的回复里可能先有 thinking 块，正文在 type === 'text' 的块里
+    const text = (data.content || [])
+        .filter(block => block.type === 'text')
+        .map(block => block.text)
+        .join('');
+
+    if (!text) {
+        throw new Error('Anthropic returned empty response');
+    }
+    return text;
 }

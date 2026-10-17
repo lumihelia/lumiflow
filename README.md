@@ -4,7 +4,7 @@
 
 [中文](README.md) · [English](README.en.md)
 
-[![Version](https://img.shields.io/badge/version-2.5.0-blue.svg)](manifest.json)
+[![Version](https://img.shields.io/badge/version-2.6.0-blue.svg)](manifest.json)
 [![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-brightgreen.svg)](https://chromewebstore.google.com/detail/lumiflow/onekhnkogijnmpddmceomhibhenhffaf)
 [![License](https://img.shields.io/badge/license-MIT-purple.svg)](LICENSE)
 
@@ -15,7 +15,7 @@ LumiFlow 是一个面向 ChatGPT、Claude、Gemini 和 DeepSeek 的 Chrome 扩�
 - **完整对话导出**：把当前对话直接下载为 TXT 或 Markdown，并保留说话者标签，适合归档、阅读和后续处理。
 - **Checkpoint 上下文迁移**：把真正需要延续的目标、决定、约束、例子和进度整理成可编辑的 segments，再注入新的 AI 会话。
 
-当前版本：**v2.5.0**。
+当前版本：**v2.6.0**。
 
 ## 适合什么场景
 
@@ -101,6 +101,8 @@ LumiFlow 本身没有订阅，也没有人为设置使用次数限制。
 
 Auto Mode 的压缩请求会直接发送给你选择的 API 提供商。你需要使用自己的 API key，因此 Google、OpenAI 或 Anthropic 自己的额度、计费和服务条款仍然适用。
 
+目前使用的模型：Gemini `gemini-flash-latest`（Google 官方别名，始终指向当前 Flash 模型）、OpenAI `gpt-6.1-sol`、Anthropic `claude-opus-5-5`。模型名集中写在 `background.js` 顶部的 `MODELS`。
+
 Manual Mode、完整对话导出和本地 segments 管理不需要模型 API。
 
 ## 隐私
@@ -132,7 +134,7 @@ LumiFlow 是一个 Manifest V3 Chrome extension，主要由以下部分组成：
 - `content.js`：平台识别、对话提取、文本选择与输入框注入。
 - `popup.js` / `popup.html`：扩展界面、segments 管理、导出与 compression 工作流。
 - `background.js`：向 Gemini / OpenAI / Anthropic 发起用户授权的 API 请求，并在后台完成 API 压缩流程。
-- `prompts.js`：API 压缩使用的多语言 prompt 模板。
+- `prompts.js`：checkpoint 提示词（页面内压缩与 API 压缩共用）。
 - `manifest.json`：扩展权限、支持域名与快捷键配置。
 
 ## 开发与贡献
