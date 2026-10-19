@@ -4,18 +4,18 @@
 
 [中文](README.md) · [English](README.en.md)
 
-[![Version](https://img.shields.io/badge/version-2.6.0-blue.svg)](manifest.json)
+[![Version](https://img.shields.io/badge/version-2.7.0-blue.svg)](manifest.json)
 [![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-brightgreen.svg)](https://chromewebstore.google.com/detail/lumiflow/onekhnkogijnmpddmceomhibhenhffaf)
 [![License](https://img.shields.io/badge/license-MIT-purple.svg)](LICENSE)
 
-LumiFlow 是一个面向 ChatGPT、Claude、Gemini 和 DeepSeek 的 Chrome 扩展。它把对话当作可以整理、保存和迁移的上下文，让长对话结束、模型切换或新会话开始时，重要信息仍然可以继续流动。
+LumiFlow 是一个面向 ChatGPT、Claude、Gemini 和 DeepSeek 的浏览器扩展，支持 Chrome 和 Firefox。它把对话当作可以整理、保存和迁移的上下文，让长对话结束、模型切换或新会话开始时，重要信息仍然可以继续流动。
 
 目前有两条主要工作流：
 
 - **完整对话导出**：把当前对话直接下载为 TXT 或 Markdown，并保留说话者标签，适合归档、阅读和后续处理。
 - **Checkpoint 上下文迁移**：把真正需要延续的目标、决定、约束、例子和进度整理成可编辑的 segments，再注入新的 AI 会话。
 
-当前版本：**v2.6.0**。
+当前版本：**v2.7.0**。
 
 ## 适合什么场景
 
@@ -70,7 +70,8 @@ Checkpoint 用来保存“下一段对话仍然需要知道什么”。
 | Manual ABSORB | 支持，不需要 API key |
 | Segments 编辑 / 删除 / 拖动排序 | 支持 |
 | Checkpoint Markdown / JSON 导出 | 支持 |
-| 键盘快捷键 | 支持 |
+| 键盘快捷键 | 支持（`Alt+Shift+C` 压缩 / `Alt+Shift+V` 注入 / `Alt+Shift+L` 打开） |
+| Firefox | 支持（v2.7.0 起，需 Firefox 140 或更新版本） |
 | 深色模式 | 跟随系统 |
 | Analytics / usage tracking | 无 |
 | LumiFlow 自有后端 | 无 |
@@ -88,12 +89,19 @@ git clone https://github.com/lumihelia/lumiflow.git
 cd lumiflow
 ```
 
-然后：
+Chrome：
 
 1. 打开 `chrome://extensions/`。
 2. 开启 Developer mode。
 3. 点击 **Load unpacked / 加载已解压的扩展程序**。
 4. 选择仓库目录。
+
+Firefox（临时加载，重启浏览器后需要重新加载）：
+
+1. 打开 `about:debugging#/runtime/this-firefox`。
+2. 点击 **Load Temporary Add-on… / 临时载入附加组件**。
+3. 选择仓库目录里的 `manifest.json`。
+4. 如果 LumiFlow 提示需要访问网站的权限，点击 popup 里的 **Allow access**。
 
 ## API 与费用
 
@@ -129,7 +137,7 @@ Segments、设置和你保存的 API key 存在浏览器本地。启用 API comp
 
 ## 项目结构
 
-LumiFlow 是一个 Manifest V3 Chrome extension，主要由以下部分组成：
+LumiFlow 是一个 Manifest V3 浏览器扩展，同一份代码同时用于 Chrome 和 Firefox，主要由以下部分组成：
 
 - `content.js`：平台识别、对话提取、文本选择与输入框注入。
 - `popup.js` / `popup.html`：扩展界面、segments 管理、导出与 compression 工作流。

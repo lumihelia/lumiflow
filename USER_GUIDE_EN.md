@@ -2,7 +2,7 @@
 
 [中文](USER_GUIDE_CN.md) · [English](USER_GUIDE_EN.md)
 
-For **LumiFlow v2.6.0**.
+For **LumiFlow v2.7.0**.
 
 LumiFlow currently supports two main paths:
 
@@ -25,6 +25,8 @@ cd lumiflow
 ```
 
 Open `chrome://extensions/`, enable **Developer mode**, click **Load unpacked**, and select the repository folder.
+
+Firefox (140 or later): open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…**, and select `manifest.json` in the repository folder. Temporary add-ons must be loaded again after restarting the browser. If the popup says LumiFlow needs access to the site, click **Allow access**.
 
 ## Supported platforms
 
@@ -143,11 +145,13 @@ Default shortcuts:
 
 | Action | Windows / Linux | macOS |
 | --- | --- | --- |
-| COMPRESS | `Ctrl+Shift+C` | `Command+Shift+C` |
-| INJECT | `Ctrl+Shift+I` | `Command+Shift+I` |
-| Open extension | `Ctrl+Shift+L` | `Command+Shift+L` |
+| COMPRESS | `Alt+Shift+C` | `Option+Shift+C` |
+| INJECT | `Alt+Shift+V` | `Option+Shift+V` |
+| Open extension | `Alt+Shift+L` | `Option+Shift+L` |
 
-Chrome or another extension may already use the same shortcut. If a shortcut does not respond, check Chrome's extension shortcut settings for conflicts.
+The browser or another extension may already use the same shortcut. To change a shortcut: in Chrome, open `chrome://extensions/shortcuts`; in Firefox, open `about:addons` → gear menu → **Manage Extension Shortcuts**.
+
+From v2.7.0 the defaults use `Alt+Shift`: the previous `Ctrl+Shift+C` / `Ctrl+Shift+I` collided with the developer-tools shortcuts in Chrome and Firefox. Existing Chrome installs keep their current shortcuts and can change them on the page above.
 
 ## Common issues
 

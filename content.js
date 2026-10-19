@@ -1,11 +1,11 @@
-// content.js - LumiFlow v2.6.0
+// content.js - LumiFlow v2.7.0
 // ===================================
 // Content script for AI chat platforms
 // Only runs on claude.ai, chatgpt.com, gemini.google.com, chat.deepseek.com
 // (controlled by manifest.json content_scripts.matches)
 // ===================================
 
-console.log("LumiFlow v2.6.0: Content script loaded on", window.location.hostname);
+console.log("LumiFlow v2.7.0: Content script loaded on", window.location.hostname);
 
 // ========================================
 // DOMAIN PROTECTION (双重防护)
@@ -470,9 +470,15 @@ async function fetchConversationViaAPI(platform) {
   return null;
 }
 
+// Firefox 的 content script 用普通 fetch 发请求时，身份是扩展而不是网页，
+// 不会带上用户在该网站的登录状态；content.fetch 才是"以网页身份"发请求。Chrome 没有 content，用普通 fetch。
+const pageFetch = (typeof content !== 'undefined' && content && typeof content.fetch === 'function')
+  ? content.fetch.bind(content)
+  : fetch;
+
 function fetchWithTimeout(url, options, timeoutMs = 8000) {
   return Promise.race([
-    fetch(url, options),
+    pageFetch(url, options),
     new Promise((_, reject) => setTimeout(() => reject(new Error('API request timed out')), timeoutMs))
   ]);
 }

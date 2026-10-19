@@ -4,18 +4,18 @@ Carry an AI conversation into the next one.
 
 [中文](README.md) · [English](README.en.md)
 
-[![Version](https://img.shields.io/badge/version-2.6.0-blue.svg)](manifest.json)
+[![Version](https://img.shields.io/badge/version-2.7.0-blue.svg)](manifest.json)
 [![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-brightgreen.svg)](https://chromewebstore.google.com/detail/lumiflow/onekhnkogijnmpddmceomhibhenhffaf)
 [![License](https://img.shields.io/badge/license-MIT-purple.svg)](LICENSE)
 
-LumiFlow is a Chrome extension for ChatGPT, Claude, Gemini, and DeepSeek. It treats conversations as context that can be organized, saved, and moved forward when a chat gets too long, you switch models, or you start a new session.
+LumiFlow is a browser extension for Chrome and Firefox, built for ChatGPT, Claude, Gemini, and DeepSeek. It treats conversations as context that can be organized, saved, and moved forward when a chat gets too long, you switch models, or you start a new session.
 
 It currently supports two main workflows:
 
 - **Full conversation export**: download the current conversation as TXT or Markdown with speaker labels for archiving, reading, or further processing.
 - **Checkpoint migration**: distill the goals, decisions, constraints, examples, and progress that still matter into editable segments, then inject them into a new AI conversation.
 
-Current version: **v2.6.0**.
+Current version: **v2.7.0**.
 
 ## When it is useful
 
@@ -70,7 +70,8 @@ Segments can be edited, deleted, and reordered. When the checkpoint is ready, op
 | Manual ABSORB | Supported; no API key required |
 | Edit / delete / reorder segments | Supported |
 | Checkpoint Markdown / JSON export | Supported |
-| Keyboard shortcuts | Supported |
+| Keyboard shortcuts | Supported (`Alt+Shift+C` compress / `Alt+Shift+V` inject / `Alt+Shift+L` open) |
+| Firefox | Supported from v2.7.0 (Firefox 140 or later) |
 | Dark mode | Follows system preference |
 | Analytics / usage tracking | None |
 | LumiFlow-hosted backend | None |
@@ -88,12 +89,19 @@ git clone https://github.com/lumihelia/lumiflow.git
 cd lumiflow
 ```
 
-Then:
+Chrome:
 
 1. Open `chrome://extensions/`.
 2. Enable **Developer mode**.
 3. Click **Load unpacked**.
 4. Select the repository folder.
+
+Firefox (temporary; reload after restarting the browser):
+
+1. Open `about:debugging#/runtime/this-firefox`.
+2. Click **Load Temporary Add-on…**.
+3. Select `manifest.json` in the repository folder.
+4. If LumiFlow says it needs access to the site, click **Allow access** in the popup.
 
 ## API usage and cost
 
@@ -129,7 +137,7 @@ Files such as `CHANGELOG_*`, `RELEASE_NOTES_*`, and `UPDATE_SUMMARY_*` are histo
 
 ## Project structure
 
-LumiFlow is a Manifest V3 Chrome extension. The main pieces are:
+LumiFlow is a Manifest V3 browser extension; the same code ships to Chrome and Firefox. The main pieces are:
 
 - `content.js`: platform detection, conversation extraction, text selection, and input-field injection.
 - `popup.js` / `popup.html`: extension UI, segment management, export, and compression workflows.

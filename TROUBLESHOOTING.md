@@ -25,7 +25,8 @@ Try in this order:
 1. Refresh the conversation page.
 2. Wait for the page to finish loading.
 3. Open LumiFlow and retry the action.
-4. If it still fails, reload LumiFlow from `chrome://extensions/`.
+4. If it still fails, reload LumiFlow from `chrome://extensions/` (Chrome) or `about:addons` (Firefox).
+5. In Firefox, open the LumiFlow popup on the page: if it shows **Allow access**, click it and refresh.
 5. Refresh the AI page once more after reloading the extension.
 
 A page that was already open before installing or updating an extension often needs one refresh before the new content script is available.
