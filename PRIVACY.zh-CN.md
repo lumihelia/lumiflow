@@ -1,10 +1,10 @@
 # LumiFlow 隐私说明
 
-[中文](PRIVACY.zh-CN.md) · [English](PRIVACY.md)
+[中文](PRIVACY.zh-CN.md) · [English](PRIVACY.md) · [纯文字版（英文）](PRIVACY.txt)
 
-**最后更新：2026 年 9 月 5 日**
+**最后更新：2026 年 10 月 19 日**
 
-这份说明描述当前版本的 LumiFlow Chrome 扩展如何处理数据。
+这份说明描述当前版本的 LumiFlow 浏览器扩展（Chrome 与 Firefox）如何处理数据。
 
 ## 概要
 
@@ -14,14 +14,14 @@ LumiFlow 当前没有自有后端、账号系统、analytics、广告 SDK 或 us
 
 ## 保存在本地的数据
 
-LumiFlow 通过 Chrome extension storage 保存：
+LumiFlow 通过浏览器的本地扩展存储保存：
 
 - checkpoint segments；
 - API 设置；
 - 你选择保存的 API key；
 - Auto / Manual mode 等偏好设置。
 
-这些内容保存在扩展自己的 `chrome.storage.local` 中。
+这些内容保存在浏览器中扩展自己的 `storage.local` 里。
 
 ## 会发送给第三方的数据
 
@@ -81,7 +81,7 @@ ChatGPT 和 Claude 会优先读取网页应用当前使用的会话数据，并�
 
 ## API key
 
-如果你在 LumiFlow 中保存 API key，它会保存在 Chrome 扩展的本地存储中。
+如果你在 LumiFlow 中保存 API key，它会保存在浏览器中扩展的本地存储里。
 
 扩展只会在向你选择的 API 提供商发起请求时使用对应 key。LumiFlow 当前没有接收或保存 API key 的自有服务器。
 
@@ -91,7 +91,7 @@ ChatGPT 和 Claude 会优先读取网页应用当前使用的会话数据，并�
 
 你可以在 LumiFlow 界面中删除 checkpoint segments，也可以在设置中移除或替换保存的 API key。
 
-如果需要删除 LumiFlow 的全部本地扩展数据，可以从 Chrome 中卸载 LumiFlow；Chrome 会随扩展卸载删除对应的 extension local storage。
+如果需要删除 LumiFlow 的全部本地扩展数据，可以从浏览器中卸载 LumiFlow；Chrome 和 Firefox 都会在卸载扩展时删除它的本地存储。
 
 ## 开源
 
@@ -101,7 +101,7 @@ https://github.com/lumihelia/lumiflow
 
 ## 这份说明何时需要更新
 
-如果 LumiFlow 后续增加自有托管服务、analytics、账号层、新的第三方集成，或者数据流发生其他变化，这份隐私说明需要和相应代码及 Chrome Web Store disclosure 一起更新。
+如果 LumiFlow 后续增加自有托管服务、analytics、账号层、新的第三方集成，或者数据流发生其他变化，这份隐私说明需要和相应代码及 Chrome Web Store、Firefox Add-ons 的商店披露一起更新。
 
 ## 联系
 

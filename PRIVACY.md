@@ -1,10 +1,10 @@
 # LumiFlow Privacy Policy
 
-[中文](PRIVACY.zh-CN.md) · [English](PRIVACY.md)
+[中文](PRIVACY.zh-CN.md) · [English](PRIVACY.md) · [Plain text](PRIVACY.txt)
 
-**Last updated: September 5, 2026**
+**Last updated: October 19, 2026**
 
-This policy describes how the current LumiFlow Chrome extension handles data.
+This policy describes how the current LumiFlow browser extension for Chrome and Firefox handles data.
 
 ## Summary
 
@@ -14,14 +14,14 @@ Most LumiFlow data stays in your browser. If you enable API compression, the con
 
 ## Data stored locally
 
-LumiFlow uses Chrome extension storage to keep:
+LumiFlow uses the browser's local extension storage to keep:
 
 - checkpoint segments;
 - API settings;
 - your API key, if you save one;
 - preferences such as Auto / Manual mode.
 
-These items are stored in `chrome.storage.local` for the extension.
+These items are stored in the extension's `storage.local` area in your browser.
 
 ## Data sent to third parties
 
@@ -81,7 +81,7 @@ The source of truth for current permissions is [`manifest.json`](manifest.json).
 
 ## API keys
 
-If you save an API key in LumiFlow, it is stored in the extension's local Chrome storage.
+If you save an API key in LumiFlow, it is stored in the extension's local storage in your browser.
 
 The key is used only when the extension makes a request to the API provider you selected. LumiFlow currently has no server that receives or stores your API key.
 
@@ -91,7 +91,7 @@ As with any locally stored credential, anyone or any software with sufficient ac
 
 You can remove checkpoint segments from the extension interface.
 
-To remove all LumiFlow local extension data, uninstall LumiFlow from Chrome. Chrome removes the extension's local storage as part of uninstalling the extension.
+To remove all LumiFlow local extension data, uninstall LumiFlow from your browser. Chrome and Firefox remove the extension's local storage as part of uninstalling it.
 
 You can also remove or replace a saved API key from LumiFlow settings.
 

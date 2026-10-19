@@ -1,0 +1,92 @@
+LumiFlow Privacy Policy
+
+Last updated: October 19, 2026
+
+This policy describes how the LumiFlow browser extension for Chrome and Firefox handles data.
+
+
+SUMMARY
+
+LumiFlow has no server, no account system, no analytics, no advertising and no usage tracking. It does not collect any data about you, and nothing is sent to the developer.
+
+Your checkpoints, settings and API key stay in your browser. If you turn on API compression, the conversation text needed for that compression is sent directly from your browser to the AI provider you chose. It does not pass through any LumiFlow server.
+
+
+DATA STORED IN YOUR BROWSER
+
+LumiFlow uses the browser's local extension storage to keep:
+
+- your checkpoint segments;
+- your API settings and, if you save one, your API key;
+- preferences such as Auto or Manual mode.
+
+This data never leaves your browser except as described under "API compression" below.
+
+
+READING CONVERSATIONS ON AI WEBSITES
+
+LumiFlow reads the conversation on the supported AI website you are using, only when you click one of its buttons (Download, Compress or Absorb). It writes a saved checkpoint into the chat input box only when you click Inject.
+
+For ChatGPT, Claude and DeepSeek, LumiFlow reads the current conversation from the same data the website itself uses to display it, with the login you already have on that website. For Gemini, and whenever that is not available, it reads the conversation from the page.
+
+This happens entirely inside your browser. LumiFlow does not send these conversations to the developer or to any LumiFlow server.
+
+
+API COMPRESSION (OPTIONAL)
+
+API compression is off unless you turn it on and enter your own API key. When it is on and you click Compress:
+
+- the conversation text needed for the checkpoint is sent directly from your browser to the provider you selected (Google Gemini, OpenAI or Anthropic);
+- your API key is sent to that provider to authorize the request;
+- that provider's own privacy policy, data retention, pricing and terms apply.
+
+Provider privacy policies:
+
+- Google: https://policies.google.com/privacy
+- OpenAI: https://openai.com/policies/privacy-policy
+- Anthropic: https://www.anthropic.com/privacy
+
+
+WHAT LUMIFLOW DOES NOT DO
+
+LumiFlow does not include analytics, usage tracking, advertising trackers or crash reporting. It has no user accounts and no server that stores conversations or API keys. It does not sell or share data, because it does not collect any.
+
+
+PERMISSIONS AND WHY THEY ARE NEEDED
+
+- Storage: to save your checkpoints, settings and API key in your browser.
+- Active tab: to work with the AI page you are currently using.
+- chatgpt.com and chat.openai.com: to read conversations and insert checkpoints on ChatGPT.
+- claude.ai: to read conversations and insert checkpoints on Claude.
+- gemini.google.com: to read conversations and insert checkpoints on Gemini.
+- chat.deepseek.com: to read conversations and insert checkpoints on DeepSeek.
+- api.openai.com, api.anthropic.com and generativelanguage.googleapis.com: to send compression requests you started, with your own API key, to the provider you selected.
+
+
+YOUR API KEY
+
+If you save an API key, it is stored in the browser's local extension storage and is used only for requests to the provider you selected. Like any data stored on your device, it could be read by someone or some software with access to your browser profile. We recommend using a key with a spending limit and changing it from time to time.
+
+
+DELETING YOUR DATA
+
+- Delete individual checkpoints, or clear them all, in the LumiFlow window.
+- Remove or replace your API key in LumiFlow's settings.
+- Uninstalling LumiFlow removes all of its stored data from your browser.
+
+
+OPEN SOURCE
+
+LumiFlow is open source under the MIT License. You can read the full code at:
+https://github.com/lumihelia/lumiflow
+
+
+CHANGES TO THIS POLICY
+
+If the way LumiFlow handles data ever changes, for example by adding a server, analytics or a new third-party service, this policy will be updated at the same time as the code and the store listings.
+
+
+CONTACT
+
+Questions about privacy can be posted at:
+https://github.com/lumihelia/lumiflow/issues
