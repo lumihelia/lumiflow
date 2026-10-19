@@ -2,7 +2,7 @@
 
 [中文](USER_GUIDE_CN.md) · [English](USER_GUIDE_EN.md)
 
-适用于 **LumiFlow v2.5.0**。
+适用于 **LumiFlow v2.6.0**。
 
 LumiFlow 目前有两条主要路径：
 

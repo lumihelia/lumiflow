@@ -4,7 +4,7 @@ Carry an AI conversation into the next one.
 
 [中文](README.md) · [English](README.en.md)
 
-[![Version](https://img.shields.io/badge/version-2.5.0-blue.svg)](manifest.json)
+[![Version](https://img.shields.io/badge/version-2.6.0-blue.svg)](manifest.json)
 [![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-brightgreen.svg)](https://chromewebstore.google.com/detail/lumiflow/onekhnkogijnmpddmceomhibhenhffaf)
 [![License](https://img.shields.io/badge/license-MIT-purple.svg)](LICENSE)
 
@@ -15,7 +15,7 @@ It currently supports two main workflows:
 - **Full conversation export**: download the current conversation as TXT or Markdown with speaker labels for archiving, reading, or further processing.
 - **Checkpoint migration**: distill the goals, decisions, constraints, examples, and progress that still matter into editable segments, then inject them into a new AI conversation.
 
-Current version: **v2.5.0**.
+Current version: **v2.6.0**.
 
 ## When it is useful
 
@@ -101,6 +101,8 @@ LumiFlow itself has no subscription and does not impose a usage-count limit.
 
 Auto Mode sends compression requests directly to the API provider you choose. You use your own API key, so the provider's quota, pricing, and terms still apply.
 
+Current models: Gemini `gemini-flash-latest` (Google's official alias for the current Flash model), OpenAI `gpt-6.1-sol`, Anthropic `claude-opus-5-5`. They are defined in one place, `MODELS` at the top of `background.js`.
+
 Manual Mode, full conversation export, and local segment management do not require a model API.
 
 ## Privacy
@@ -132,7 +134,7 @@ LumiFlow is a Manifest V3 Chrome extension. The main pieces are:
 - `content.js`: platform detection, conversation extraction, text selection, and input-field injection.
 - `popup.js` / `popup.html`: extension UI, segment management, export, and compression workflows.
 - `background.js`: user-authorized requests to Gemini / OpenAI / Anthropic APIs; runs the API compression flow.
-- `prompts.js`: multilingual prompt templates for API compression.
+- `prompts.js`: the checkpoint prompt, shared by in-chat and API compression.
 - `manifest.json`: permissions, supported domains, and keyboard shortcuts.
 
 ## Development and contribution

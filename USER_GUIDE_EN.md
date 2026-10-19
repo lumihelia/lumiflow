@@ -2,7 +2,7 @@
 
 [中文](USER_GUIDE_CN.md) · [English](USER_GUIDE_EN.md)
 
-For **LumiFlow v2.5.0**.
+For **LumiFlow v2.6.0**.
 
 LumiFlow currently supports two main paths:
 

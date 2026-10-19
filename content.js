@@ -1,11 +1,11 @@
-// content.js - LumiFlow v2.5.0
+// content.js - LumiFlow v2.6.0
 // ===================================
 // Content script for AI chat platforms
 // Only runs on claude.ai, chatgpt.com, gemini.google.com, chat.deepseek.com
 // (controlled by manifest.json content_scripts.matches)
 // ===================================
 
-console.log("LumiFlow v2.5.0: Content script loaded on", window.location.hostname);
+console.log("LumiFlow v2.6.0: Content script loaded on", window.location.hostname);
 
 // ========================================
 // DOMAIN PROTECTION (双重防护)
@@ -78,118 +78,7 @@ function validatePlatformSupport() {
 // ========================================
 // COMPRESSION PROMPT
 // ========================================
-
-// 多语言检测函数
-function detectConversationLanguage() {
-  // 获取页面上的对话文本
-  const pageText = document.body.innerText || '';
-
-  const patterns = {
-    chinese: /[\u4e00-\u9fa5]/g,
-    japanese: /[\u3040-\u309f\u30a0-\u30ff]/g,
-    korean: /[\uac00-\ud7af\u1100-\u11ff]/g,
-    russian: /[\u0400-\u04ff]/g,
-    arabic: /[\u0600-\u06ff]/g,
-    thai: /[\u0e00-\u0e7f]/g,
-    german: /[äöüßÄÖÜ]/g,
-    french: /[àâçéèêëîïôûùüÿœæ]/gi,
-    spanish: /[áéíóúüñ¿¡]/gi,
-  };
-
-  let maxLang = 'english';
-  let maxCount = 0;
-
-  for (const [lang, pattern] of Object.entries(patterns)) {
-    const matches = pageText.match(pattern) || [];
-    if (matches.length > maxCount) {
-      maxCount = matches.length;
-      maxLang = lang;
-    }
-  }
-
-  if (maxCount < 20) return 'english';
-  return maxLang;
-}
-
-function getLanguageInstruction() {
-  const lang = detectConversationLanguage();
-
-  const instructions = {
-    chinese: "CRITICAL: 你的输出必须使用中文。",
-    japanese: "CRITICAL: 出力は日本語でなければなりません。",
-    korean: "CRITICAL: 출력은 한국어로 작성해야 합니다。",
-    russian: "CRITICAL: Вывод должен быть на русском языке.",
-    arabic: "CRITICAL: يجب أن يكون الناتج بالعربية.",
-    thai: "CRITICAL: ผลลัพธ์ต้องเป็นภาษาไทย",
-    german: "CRITICAL: Die Ausgabe muss auf Deutsch sein.",
-    french: "CRITICAL: La sortie doit être en français.",
-    spanish: "CRITICAL: La salida debe estar en español.",
-    english: ""
-  };
-
-  return instructions[lang] || "";
-}
-
-// 获取完整的压缩 prompt（带语言指令）
-function getCompressionPrompt() {
-  const langInstruction = getLanguageInstruction();
-
-  return `CONTEXT COMPRESSION TASK
-${langInstruction}
-
-You are helping me transition to a new chat session. Compress our conversation into a structured checkpoint.
-
-CRITICAL: Analyze our ACTUAL conversation and fill in SPECIFIC details. Do NOT just repeat the template.
-
-Your output MUST follow this EXACT format:
-
-<<<CHECKPOINT_START>>>
-
-1. Project Goal (10%)
-[SPECIFIC "North Star" - what EXACTLY are we building?
-BAD: "Building a Chrome extension"
-GOOD: "LumiFlow v2.1 - Chrome extension for AI conversation compression and cross-platform context transfer"]
-
-2. Current Status (30% - MOST IMPORTANT)
-[Where are we RIGHT NOW? Focus on LATEST state.
-- What is 100% verified/working? (with proof)
-- What is currently broken/stuck? (with exact symptoms)
-BAD: "Made progress on the project"
-GOOD: "v2.1.2 works on ChatGPT/Claude. Gemini Copy All incomplete due to lazy loading - fixed by adding scrollToLoadAllMessages()"]
-
-3. Immutable Decisions (20%)
-[Constraints/principles we AGREED ON - do NOT re-discuss
-- Include specific file names, function names, technical choices with REASONS
-BAD: "Using an API"
-GOOD: "Using background.js Service Worker to bypass CORS for Anthropic. manifest v3 required (v2 deprecated)."]
-
-4. Pending Actions (25%)
-[IMMEDIATE next steps in PRIORITY order. Be SPECIFIC.
-BAD: "Fix bugs"
-GOOD: "1. Test scrollToLoadAllMessages() on Gemini 2. Submit v2.1.2 to Chrome Store"]
-
-5. Critical Context (15%)
-[Essential details that would be PAINFUL to lose: file names, variable names, API endpoints, code snippets]
-
-<<<CHECKPOINT_END>>>
-
-RULES:
-- Replace ALL placeholders with ACTUAL content from our conversation
-- Use SPECIFIC terms: file names (content.js), functions (addSegment), versions (v2.1.2)
-- AVOID vague phrases: "the system", "we decided", "the user wants"
-- If 50+ messages: prioritize LATEST decisions, mark deprecated as [OLD→NEW]
-- Include version numbers when relevant
-- NO explanatory text or meta-commentary
-
-SELF-CHECK before output:
-□ Did I mention specific file/function names?
-□ Can someone unfamiliar understand what we're building?
-□ Did I avoid generic phrases?
-□ Are next steps actionable with specific commands?
-□ Did I focus on LATEST state?`;
-}
-
-// 注意：不再在模块加载时生成 prompt，而是在每次压缩时动态生成
+// 提示词统一放在 prompts.js（manifest 里先于本文件加载）：buildInChatCompressionPrompt()
 
 // ========================================
 // Message Listener
@@ -297,8 +186,8 @@ async function handleAutoCompress(request, sendResponse) {
     }
 
     // Step 2: Get compression prompt - 动态生成以获取正确的语言
-    const prompt = request.customPrompt || getCompressionPrompt();
-    console.log('[AUTO] Language detected, prompt generated');
+    const prompt = request.customPrompt || buildInChatCompressionPrompt();
+    console.log('[AUTO] Compression prompt generated');
 
     // Step 3: 发送前先记下页面上已有的 checkpoint（之前压缩过的），等待时只认新生成的
     snapshotExistingCheckpoints();
@@ -481,7 +370,7 @@ function handleInject(text, sendResponse) {
 async function handleGetStats(sendResponse) {
   try {
     const platform = detectPlatform();
-    const messages = (await fetchConversationViaAPI(platform)) || extractConversation();
+    const messages = normalizeConversation((await fetchConversationViaAPI(platform)) || extractConversation());
     const stats = getConversationStats(messages);
 
     sendResponse({
@@ -524,6 +413,7 @@ async function handleGetConversation(sendResponse) {
       messages = extractConversation();
     }
 
+    messages = normalizeConversation(messages);
     console.log('[GET_CONVERSATION] Extracted messages:', messages.length);
 
     if (messages.length === 0) {
@@ -632,23 +522,26 @@ async function fetchChatGPTConversationAPI() {
     const role = msg.author && msg.author.role;
     if (role !== 'user' && role !== 'assistant') continue; // 跳过 system/tool 等非对话内容
 
+    // 页面上不显示的消息（自定义指令、记忆、系统注入的上下文等）不属于对话本身
+    if (msg.metadata && msg.metadata.is_visually_hidden_from_conversation) continue;
+
     const content = extractChatGPTNodeText(msg.content);
     if (content && content.trim().length > 0) {
-      messages.push({ role: role === 'user' ? 'user' : 'model', content: content.trim() });
+      // 一轮回答在接口里常被拆成多个 assistant 节点（调用工具前后各一段），合并成一条
+      appendMessage(messages, role === 'user' ? 'user' : 'model', content.trim(), {
+        mergeSameRole: role === 'assistant'
+      });
     }
   }
 
   return messages.length > 0 ? messages : null;
 }
 
+// 只取真正显示给用户看的正文。code（搜索词、Python 代码调用）、thoughts（推理过程）、
+// reasoning_recap、tether_browsing_display 等内部内容不导出。
 function extractChatGPTNodeText(content) {
-  if (content.content_type === 'text' && Array.isArray(content.parts)) {
-    return content.parts.filter(p => typeof p === 'string').join('\n');
-  }
-  if (typeof content.text === 'string') {
-    return content.text;
-  }
-  if (Array.isArray(content.parts)) {
+  const type = content.content_type;
+  if ((type === 'text' || type === 'multimodal_text') && Array.isArray(content.parts)) {
     return content.parts.filter(p => typeof p === 'string').join('\n');
   }
   return '';
@@ -678,16 +571,35 @@ async function fetchClaudeConversationAPI() {
   const rawMessages = data && data.chat_messages;
   if (!Array.isArray(rawMessages)) return null;
 
+  // tree=True 会把所有分支（编辑过的提问、重新生成的回答）都返回；
+  // 沿 current_leaf_message_uuid → parent_message_uuid 回溯，只保留屏幕上显示的那条分支
+  const ordered = orderClaudeMessages(rawMessages, data.current_leaf_message_uuid);
+
   const messages = [];
-  for (const m of rawMessages) {
+  for (const m of ordered) {
     const role = m.sender === 'human' ? 'user' : 'model';
     const content = extractClaudeMessageText(m);
     if (content && content.trim().length > 0) {
-      messages.push({ role, content: content.trim() });
+      appendMessage(messages, role, content.trim());
     }
   }
 
   return messages.length > 0 ? messages : null;
+}
+
+function orderClaudeMessages(rawMessages, leafId) {
+  if (!leafId) return rawMessages;
+  const byId = new Map(rawMessages.filter(m => m && m.uuid).map(m => [m.uuid, m]));
+  const chain = [];
+  let id = leafId;
+  let guard = 0;
+  while (id && byId.has(id) && guard < 5000) {
+    const m = byId.get(id);
+    chain.push(m);
+    id = m.parent_message_uuid;
+    guard++;
+  }
+  return chain.length > 0 ? chain.reverse() : rawMessages;
 }
 
 function extractClaudeMessageText(m) {
@@ -993,8 +905,7 @@ function extractClaudeConversation() {
         }
       }
 
-      let content = container.textContent || container.innerText;
-      content = cleanMessageContent(content);
+      const content = cleanMessageContent(getElementText(container));
 
       if (content && content.length > 0) {
         messages.push({ role, content });
@@ -1011,8 +922,7 @@ function extractClaudeConversation() {
 
     all.forEach(el => {
       const role = el.classList.contains('font-user-message') ? 'user' : 'model';
-      let content = el.textContent || el.innerText;
-      content = cleanMessageContent(content);
+      const content = cleanMessageContent(getElementText(el));
 
       if (content && content.length > 0) {
         messages.push({ role, content });
@@ -1025,19 +935,18 @@ function extractClaudeConversation() {
 
 function extractChatGPTConversation() {
   const messages = [];
-  const messageElements = document.querySelectorAll('[data-message-author-role]');
+  // 只取最外层的消息元素，避免嵌套元素把同一条消息读两遍
+  const messageElements = Array.from(document.querySelectorAll('[data-message-author-role]'))
+    .filter(el => !el.parentElement || !el.parentElement.closest('[data-message-author-role]'));
 
   messageElements.forEach(el => {
     const role = el.getAttribute('data-message-author-role');
-    let content = el.textContent || el.innerText;
+    if (role !== 'user' && role !== 'assistant') return;
 
-    // Clean artifacts
-    content = cleanMessageContent(content);
-
-    if (content && content.length > 0) {
-      messages.push({
-        role: role === 'user' ? 'user' : 'model',
-        content: content
+    const content = cleanMessageContent(getElementText(el));
+    if (content) {
+      appendMessage(messages, role === 'user' ? 'user' : 'model', content, {
+        mergeSameRole: role === 'assistant'
       });
     }
   });
@@ -1084,8 +993,7 @@ function extractGeminiConversation() {
       el.querySelector('[class*="user"]') ||
       el.getAttribute('data-role') === 'user';
 
-    let content = el.textContent || el.innerText;
-    content = cleanMessageContent(content);
+    const content = cleanMessageContent(getElementText(el));
 
     if (content && content.length > 0) {
       messages.push({
@@ -1111,8 +1019,7 @@ function extractGeminiConversation() {
       if (text.includes('New chat') || text.includes('Search')) return;
 
       const isUser = el.className.includes('user');
-      let content = el.textContent || el.innerText;
-      content = cleanMessageContent(content);
+      const content = cleanMessageContent(getElementText(el));
 
       if (content && content.length > 0) {
         messages.push({
@@ -1183,46 +1090,55 @@ function extractDeepSeekConversation() {
   return messages;
 }
 
+// innerText 会按页面排版保留段落、列表、代码块的换行；textContent 会把它们挤成一行
+function getElementText(el) {
+  return (el.innerText || el.textContent || '');
+}
+
+// 平台界面上的按钮/提示文字，只在它们独占一行时才删除，
+// 避免误伤正文（例如旧版本会把 "Moreover" 里的 "More" 删掉）
+const UI_ONLY_LINES = new Set([
+  'Copy code', 'Copy', 'Copy response', 'Edit', 'Edit prompt', 'More', 'Show thinking',
+  'Use microphone', 'Add files', 'Collapse menu', 'Search (⌘⇧K)', 'New chat (⌘⇧O)'
+]);
+
 function cleanMessageContent(text) {
-  if (!text) return "";
+  if (!text) return '';
 
-  // Remove common UI artifacts specific to Gemini
-  let cleaned = text
-    .replace(/Copy code/g, '')
-    .replace(/^[0-9]+ \/ [0-9]+$/gm, '') // Remove pagination
-    .replace(/Use microphone/g, '')
-    .replace(/Search \(⌘⇧K\)/g, '')
-    .replace(/Add files/g, '')
-    .replace(/Collapse menu/g, '')
-    .replace(/New chat \(⌘⇧O\)/g, '')
-    .replace(/Copy response/g, '')
-    .replace(/More/g, '')
-    .replace(/Edit prompt/g, '')
+  return text
+    .split('\n')
+    .filter(line => !UI_ONLY_LINES.has(line.trim()) && !/^[0-9]+ \/ [0-9]+$/.test(line.trim()))
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
     .trim();
+}
 
-  // Gemini-specific: Handle user/AI boundary
+// 读屏用的隐藏标题（ChatGPT 的 "You said:" / "ChatGPT said:" 等）会混进文字里，
+// 导出时又会再加一次说话人标签，看起来就"多了一个 You said"
+const SPEAKER_LABEL_PREFIX = /^\s*(you said|user said|i said|chatgpt said|claude said|gemini said|deepseek said|assistant said|你说|您说|ChatGPT\s*说|ChatGPT\s*說)\s*[:：]\s*/i;
 
-  // If "Show thinking" exists (Thinking/Pro mode), use it as separator
-  if (cleaned.includes('Show thinking')) {
-    cleaned = cleaned.replace(/Show thinking/g, '\n\n---\n\n');
-  } else {
-    // Fast mode: Try to detect user question end
-    // Pattern: Double question marks often mark end of user query
-    // "问题？？这是" → "问题？？\n\n---\n\n这是"
-    // Only apply if followed by Chinese character or capital letter (start of answer)
-    cleaned = cleaned.replace(/([？?]{2,})([这那很是要会可能A-Z\u4e00-\u9fa5])/g, '$1\n\n---\n\n$2');
+// 追加一条消息：同一角色的完全相同内容（同一条消息被读到两次）直接跳过；
+// mergeSameRole 时，同一角色的相邻片段合并成一条
+function appendMessage(messages, role, content, { mergeSameRole = false } = {}) {
+  const last = messages[messages.length - 1];
+  if (last && last.role === role) {
+    if (last.content === content) return;
+    if (mergeSameRole) {
+      last.content = `${last.content}\n\n${content}`;
+      return;
+    }
   }
+  messages.push({ role, content });
+}
 
-  // Gemini-specific: Insert newlines where sentences clearly end
-  cleaned = cleaned
-    .replace(/([。！])([A-Z\u4e00-\u9fa5])/g, '$1\n\n$2')  // Chinese punctuation + new sentence (not ？)
-    .replace(/([.!])([A-Z])/g, '$1\n\n$2')  // English punctuation + capital letter (not ?)
-    .replace(/(\))([A-Z\u4e00-\u9fa5])/g, '$1\n\n$2');  // Close paren + new sentence
-
-  // Limit excessive newlines
-  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
-
-  return cleaned;
+// 所有平台、所有提取路径的出口：去掉混进来的说话人标签，再去掉相邻重复
+function normalizeConversation(messages) {
+  const result = [];
+  (messages || []).forEach(m => {
+    const content = String(m.content || '').replace(SPEAKER_LABEL_PREFIX, '').trim();
+    if (content) appendMessage(result, m.role, content);
+  });
+  return result;
 }
 
 function getConversationStats(messages) {
@@ -1583,7 +1499,7 @@ function isExistingCheckpoint(el, text) {
 
 // 用户消息里的压缩 prompt 同样含有 START/END 标记；靠 prompt 独有的文字把它认出来
 function isCompressionPromptEcho(text) {
-  return text.includes('CONTEXT COMPRESSION TASK') || text.includes('SELF-CHECK before output');
+  return text.includes(CHECKPOINT_PROMPT_TITLE);
 }
 
 function extractCheckpoint(fullText) {
