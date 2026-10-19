@@ -25,7 +25,8 @@ LumiFlow 当前支持这些对话页面：
 1. 刷新对话页。
 2. 等页面完成加载。
 3. 打开 LumiFlow，重新执行操作。
-4. 仍然失败时，到 `chrome://extensions/` 重新加载 LumiFlow。
+4. 仍然失败时，到 `chrome://extensions/`（Chrome）或 `about:addons`（Firefox）重新加载 LumiFlow。
+5. Firefox 用户请在页面上打开 LumiFlow：如果 popup 显示 **Allow access**，点击后刷新页面。
 5. 扩展重新加载后，再刷新一次 AI 页面。
 
 安装或更新扩展之前已经打开的页面，通常需要刷新一次，新的 content script 才能进入页面。

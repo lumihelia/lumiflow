@@ -2,7 +2,7 @@
 
 [中文](USER_GUIDE_CN.md) · [English](USER_GUIDE_EN.md)
 
-适用于 **LumiFlow v2.6.0**。
+适用于 **LumiFlow v2.7.0**。
 
 LumiFlow 目前有两条主要路径：
 
@@ -25,6 +25,8 @@ cd lumiflow
 ```
 
 然后打开 `chrome://extensions/`，开启 Developer mode，点击 **Load unpacked / 加载已解压的扩展程序**，选择仓库目录。
+
+Firefox（140 或更新版本）：打开 `about:debugging#/runtime/this-firefox`，点击 **临时载入附加组件**，选择仓库目录里的 `manifest.json`。临时载入的扩展在重启浏览器后需要重新载入。如果 popup 提示需要访问网站的权限，点击 **Allow access**。
 
 ## 支持的平台
 
@@ -143,11 +145,13 @@ API key 保存在 `chrome.storage.local`。LumiFlow 当前没有自己的后端�
 
 | 操作 | Windows / Linux | macOS |
 | --- | --- | --- |
-| COMPRESS | `Ctrl+Shift+C` | `Command+Shift+C` |
-| INJECT | `Ctrl+Shift+I` | `Command+Shift+I` |
-| 打开扩展 | `Ctrl+Shift+L` | `Command+Shift+L` |
+| COMPRESS | `Alt+Shift+C` | `Option+Shift+C` |
+| INJECT | `Alt+Shift+V` | `Option+Shift+V` |
+| 打开扩展 | `Alt+Shift+L` | `Option+Shift+L` |
 
-浏览器或其他扩展可能占用同一组快捷键；如果快捷键没有响应，可以在 Chrome 的扩展快捷键设置中检查冲突。
+浏览器或其他扩展可能占用同一组快捷键。如果快捷键没有响应，可以修改：Chrome 在 `chrome://extensions/shortcuts`，Firefox 在 `about:addons` → 齿轮菜单 → **管理扩展快捷键**。
+
+从 v2.7.0 起默认快捷键改为 `Alt+Shift` 组合：原来的 `Ctrl+Shift+C` / `Ctrl+Shift+I` 与 Chrome、Firefox 的开发者工具快捷键冲突。已经安装过的 Chrome 用户会保留原来的设置，可以在上面的页面手动修改。
 
 ## 常见问题
 

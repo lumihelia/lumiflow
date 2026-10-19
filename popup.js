@@ -7,7 +7,7 @@
  */
 
 // ========================================
-// LumiFlow v2.6.0 - Popup Script
+// LumiFlow v2.7.0 - Popup Script
 // ========================================
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -50,6 +50,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Load stats if on supported platform
         loadStats();
+
+        // Firefox 允许用户随时收回扩展对某个网站的访问权限；收回后这里给出一键恢复
+        checkSiteAccess();
 
         // Load segments
         await loadSegments();
@@ -1042,6 +1045,44 @@ document.addEventListener('DOMContentLoaded', () => {
     // LOAD STATS
     // ========================================
 
+    // ========================================
+    // SITE ACCESS (Firefox)
+    // ========================================
+
+    async function checkSiteAccess() {
+        try {
+            if (!chrome.permissions || !chrome.permissions.contains) return;
+            const tab = await getActiveTab();
+            if (!tab || !tab.url) return;
+
+            const supportedOrigins = (chrome.runtime.getManifest().content_scripts || [])
+                .flatMap(cs => cs.matches || []);
+            const origin = supportedOrigins.find(pattern =>
+                new RegExp('^' + pattern.replace(/[.]/g, '\\.').replace(/\*/g, '.*')).test(tab.url)
+            );
+            if (!origin) return; // 不是支持的 AI 网站
+
+            const granted = await chrome.permissions.contains({ origins: [origin] });
+            if (granted) return;
+
+            messageArea.textContent = 'LumiFlow needs access to this site. ';
+            const allowBtn = document.createElement('button');
+            allowBtn.textContent = 'Allow access';
+            allowBtn.className = 'action-btn primary';
+            allowBtn.style.marginTop = '8px';
+            allowBtn.addEventListener('click', async () => {
+                // 必须在点击事件里直接调用 permissions.request
+                const ok = await chrome.permissions.request({ origins: supportedOrigins });
+                showMessage(ok ? 'Access granted. Refresh the page, then try again.' : 'Access not granted.', ok ? 'success' : 'error');
+            });
+            messageArea.appendChild(allowBtn);
+            messageArea.className = 'message-area warning';
+            messageArea.style.display = 'block';
+        } catch (err) {
+            console.warn('[LumiFlow] Site access check failed:', err);
+        }
+    }
+
     async function loadStats() {
         try {
             const tab = await getActiveTab();
@@ -1384,6 +1425,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (tab.url.includes("chrome.google.com/webstore") ||
+            tab.url.includes("chromewebstore.google.com") ||
+            tab.url.includes("addons.mozilla.org") ||
             tab.url.includes("microsoftedge.microsoft.com/addons")) {
             if (!silent) showMessage("Blocked on extension stores", "error");
             return false;

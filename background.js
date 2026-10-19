@@ -6,8 +6,12 @@
 
 console.log('LumiFlow: Service Worker started');
 
-// 压缩 prompt 模板与 popup 共用
-importScripts('prompts.js');
+// 压缩 prompt 模板与 popup 共用。
+// Chrome 以 service worker 运行，这里加载；Firefox 以后台页面运行，
+// manifest 的 background.scripts 已先加载 prompts.js，且那里没有 importScripts。
+if (typeof importScripts === 'function') {
+    importScripts('prompts.js');
+}
 
 // 🆕 Handle keyboard shortcuts
 chrome.commands.onCommand.addListener((command) => {
