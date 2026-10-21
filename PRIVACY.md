@@ -2,7 +2,7 @@
 
 [中文](PRIVACY.zh-CN.md) · [English](PRIVACY.md) · [Plain text](PRIVACY.txt)
 
-**Last updated: October 19, 2026**
+**Last updated: October 21, 2026**
 
 This policy describes how the current LumiFlow browser extension for Chrome and Firefox handles data.
 
@@ -48,6 +48,12 @@ For ChatGPT and Claude, the extension may read the current conversation from pla
 
 This access happens in the browser session where you are already using the AI service. LumiFlow does not send those extracted conversations to a LumiFlow server.
 
+### Images and files (DOWNLOAD ZIP)
+
+When you click `DOWNLOAD ZIP` on ChatGPT or Claude, LumiFlow downloads the images and files in that conversation (uploaded pictures, PDFs, AI-generated images and so on) from the AI service and saves them with the conversation as a ZIP file on your computer. These files are not sent anywhere else.
+
+ChatGPT stores files on a separate host, `oaiusercontent.com`. Access to it is an optional permission that the browser asks for the first time you use `DOWNLOAD ZIP` on ChatGPT. If you decline, the ZIP contains the conversation without those files.
+
 If API compression is enabled, the subset of conversation content needed for compression is then sent to the provider you selected, as described above.
 
 ## Data LumiFlow does not currently collect
@@ -76,6 +82,7 @@ The current Manifest V3 extension requests:
 | `api.openai.com` | Send user-authorized OpenAI compression requests |
 | `api.anthropic.com` | Send user-authorized Anthropic compression requests |
 | `generativelanguage.googleapis.com` | Send user-authorized Gemini compression requests |
+| `*.oaiusercontent.com` (optional) | Download ChatGPT images and files into a ZIP you requested |
 
 The source of truth for current permissions is [`manifest.json`](manifest.json).
 

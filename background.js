@@ -6,11 +6,11 @@
 
 console.log('LumiFlow: Service Worker started');
 
-// 压缩 prompt 模板与 popup 共用。
+// 压缩 prompt 模板（prompts.js）和附件标记的处理（export.js）与 popup 共用。
 // Chrome 以 service worker 运行，这里加载；Firefox 以后台页面运行，
 // manifest 的 background.scripts 已先加载 prompts.js，且那里没有 importScripts。
 if (typeof importScripts === 'function') {
-    importScripts('prompts.js');
+    importScripts('prompts.js', 'export.js');
 }
 
 // 🆕 Handle keyboard shortcuts
@@ -40,6 +40,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true; // Keep channel open for async response
     }
 
+    if (request.action === 'fetchBinary') {
+        fetchBinaryForZip(request.url)
+            .then(result => sendResponse({ ok: true, ...result }))
+            .catch(error => sendResponse({ ok: false, error: error.message }));
+        return true;
+    }
+
     if (request.action === 'compressConversation') {
         compressConversation(request.tabId, request.apiSettings)
             .then(result => sendResponse({ success: true, ...result }))
@@ -47,6 +54,45 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true;
     }
 });
+
+// ========================================
+// ZIP 附件下载
+// ========================================
+// 页面脚本受网站的跨域限制，拿不到放在其他域名上的文件（例如 ChatGPT 的图片在 oaiusercontent.com）。
+// 后台在用户授权了对应网站后可以下载，再以 base64 交回页面打包。
+// 只接受下面这些域名，避免被当成任意地址的下载代理。
+const ZIP_DOWNLOAD_HOSTS = ['oaiusercontent.com'];
+
+async function fetchBinaryForZip(url) {
+    const parsed = new URL(url);
+    const allowed = parsed.protocol === 'https:' &&
+        ZIP_DOWNLOAD_HOSTS.some(host => parsed.hostname === host || parsed.hostname.endsWith('.' + host));
+    if (!allowed) {
+        throw new Error('host not allowed');
+    }
+
+    let response;
+    try {
+        response = await fetch(parsed.href);
+    } catch (error) {
+        // 用户没有授权这个网站时，请求会被浏览器拦下
+        throw new Error('no access to the file host (allow it when LumiFlow asks)');
+    }
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+    }
+
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    let binary = '';
+    const CHUNK = 0x8000;
+    for (let i = 0; i < bytes.length; i += CHUNK) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+    }
+    return {
+        base64: btoa(binary),
+        contentType: response.headers.get('content-type') || ''
+    };
+}
 
 // ========================================
 // COMPRESS (API MODE)
@@ -85,9 +131,14 @@ async function compressConversation(tabId, apiSettings) {
         throw new Error('No messages found on page');
     }
 
-    const conversationText = conversation.map(m =>
-        `${m.role === 'user' ? 'Human' : 'AI'}: ${m.content}`
-    ).join('\n\n');
+    // 图片和附件本身不发给模型，但留下名字，让 checkpoint 知道这里曾有哪些材料
+    const conversationText = conversation.map(m => {
+        const label = a => `[${a.kind === 'image' ? 'Image' : 'File'}: ${a.name}]`;
+        const raw = String(m.content || '');
+        const leading = (m.attachments || []).filter(a => !raw.includes(attachmentMarker(a.id))).map(label);
+        const text = replaceAttachmentMarkers(raw, m.attachments, label);
+        return `${m.role === 'user' ? 'Human' : 'AI'}: ${[...leading, text].filter(Boolean).join('\n')}`;
+    }).join('\n\n');
 
     const checkpoint = await handleAPICall({
         provider: apiSettings.provider,

@@ -2,7 +2,7 @@
 
 [中文](PRIVACY.zh-CN.md) · [English](PRIVACY.md) · [纯文字版（英文）](PRIVACY.txt)
 
-**最后更新：2026 年 10 月 19 日**
+**最后更新：2026 年 10 月 21 日**
 
 这份说明描述当前版本的 LumiFlow 浏览器扩展（Chrome 与 Firefox）如何处理数据。
 
@@ -48,6 +48,12 @@ ChatGPT 和 Claude 会优先读取网页应用当前使用的会话数据，并�
 
 这些读取发生在你已经登录并使用相应 AI 服务的浏览器会话中。提取出的对话不会被发送到 LumiFlow 自有服务器。
 
+### 图片与文件（DOWNLOAD ZIP）
+
+在 ChatGPT 或 Claude 上点击 `DOWNLOAD ZIP` 时，LumiFlow 会从 AI 平台下载这段对话里的图片和文件（你上传的图片、PDF、AI 生成的图片等），和对话一起保存成你电脑上的一个 ZIP 文件。这些文件不会被发送到其他任何地方。
+
+ChatGPT 把文件存放在另一个网站 `oaiusercontent.com`。访问它是一项可选权限，第一次在 ChatGPT 上使用 `DOWNLOAD ZIP` 时浏览器会询问；如果你拒绝，ZIP 里只包含对话文字，不含这些文件。
+
 启用 API compression 后，其中完成压缩所需的内容会按照上一节所述发送给你选择的 API 提供商。
 
 ## LumiFlow 当前不会收集的数据
@@ -76,6 +82,7 @@ ChatGPT 和 Claude 会优先读取网页应用当前使用的会话数据，并�
 | `api.openai.com` | 发送由用户授权的 OpenAI compression 请求 |
 | `api.anthropic.com` | 发送由用户授权的 Anthropic compression 请求 |
 | `generativelanguage.googleapis.com` | 发送由用户授权的 Gemini compression 请求 |
+| `*.oaiusercontent.com`（可选） | 把 ChatGPT 对话里的图片和文件下载进你请求的 ZIP |
 
 当前权限的最终事实来源是 [`manifest.json`](manifest.json)。
 
