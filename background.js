@@ -58,10 +58,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // ========================================
 // ZIP 附件下载
 // ========================================
-// 页面脚本受网站的跨域限制，拿不到放在其他域名上的文件（例如 ChatGPT 的图片在 oaiusercontent.com）。
+// 页面脚本受网站的跨域限制，拿不到放在其他域名上的文件（ChatGPT 的在 oaiusercontent.com，Gemini 的在 googleusercontent.com）。
 // 后台在用户授权了对应网站后可以下载，再以 base64 交回页面打包。
 // 只接受下面这些域名，避免被当成任意地址的下载代理。
-const ZIP_DOWNLOAD_HOSTS = ['oaiusercontent.com'];
+const ZIP_DOWNLOAD_HOSTS = ['oaiusercontent.com', 'googleusercontent.com'];
 
 async function fetchBinaryForZip(url) {
     const parsed = new URL(url);
@@ -73,7 +73,8 @@ async function fetchBinaryForZip(url) {
 
     let response;
     try {
-        response = await fetch(parsed.href);
+        // Gemini 上传的图片需要带上 Google 账号的登录状态才能读取
+        response = await fetch(parsed.href, { credentials: 'include' });
     } catch (error) {
         // 用户没有授权这个网站时，请求会被浏览器拦下
         throw new Error('no access to the file host (allow it when LumiFlow asks)');

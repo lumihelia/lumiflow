@@ -7,7 +7,7 @@
  */
 
 // ========================================
-// LumiFlow v2.8.0 - Popup Script
+// LumiFlow v2.9.0 - Popup Script
 // ========================================
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -807,16 +807,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // ========================================
     // DOWNLOAD ZIP（对话 + 图片 + 附件）
     // ========================================
-    // ChatGPT 的图片和文件放在 oaiusercontent.com，需要用户授权一次才能下载。
+    // ChatGPT 的图片和文件放在 oaiusercontent.com，Gemini 的在 googleusercontent.com，需要用户授权一次才能下载。
     // 授权请求必须在点击事件里立刻发出（不能先 await 别的东西），所以平台在 popup 打开时就记下来。
     const ZIP_OPTIONAL_ORIGINS = {
-        chatgpt: ['https://*.oaiusercontent.com/*']
+        chatgpt: ['https://*.oaiusercontent.com/*'],
+        gemini: ['https://*.googleusercontent.com/*']
     };
     let activeTabPlatform = null;
     getActiveTab().then(tab => {
         const url = (tab && tab.url) || '';
         if (/^https:\/\/(chatgpt\.com|chat\.openai\.com)\//.test(url)) activeTabPlatform = 'chatgpt';
         else if (/^https:\/\/claude\.ai\//.test(url)) activeTabPlatform = 'claude';
+        else if (/^https:\/\/gemini\.google\.com\//.test(url)) activeTabPlatform = 'gemini';
     }).catch(() => {});
 
     const downloadZipBtn = document.getElementById('download-zip-btn');

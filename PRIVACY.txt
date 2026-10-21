@@ -34,9 +34,9 @@ This happens entirely inside your browser. LumiFlow does not send these conversa
 
 IMAGES AND FILES (DOWNLOAD ZIP)
 
-When you click Download ZIP on ChatGPT or Claude, LumiFlow downloads the images and files in that conversation (for example pictures you uploaded, PDFs, or AI-generated images) from the AI website and saves them, together with the conversation, as a ZIP file on your computer. These files go only to your own computer.
+When you click Download ZIP on ChatGPT, Claude or Gemini, LumiFlow downloads the images and files in that conversation (for example pictures you uploaded, PDFs, or AI-generated images) from the AI website and saves them, together with the conversation, as a ZIP file on your computer. These files go only to your own computer.
 
-ChatGPT stores files on a separate site (oaiusercontent.com). The first time you use Download ZIP on ChatGPT, your browser asks whether LumiFlow may access that site. This permission is optional: if you decline, the ZIP contains the conversation without those files, and you can change your choice later in the browser's extension settings.
+ChatGPT and Gemini store files on separate sites (oaiusercontent.com and googleusercontent.com). The first time you use Download ZIP on ChatGPT or Gemini, your browser asks whether LumiFlow may access that site. This permission is optional: if you decline, the ZIP contains the conversation without those files, and you can change your choice later in the browser's extension settings.
 
 
 API COMPRESSION (OPTIONAL)
@@ -67,7 +67,7 @@ PERMISSIONS AND WHY THEY ARE NEEDED
 - claude.ai: to read conversations and insert checkpoints on Claude.
 - gemini.google.com: to read conversations and insert checkpoints on Gemini.
 - chat.deepseek.com: to read conversations and insert checkpoints on DeepSeek.
-- oaiusercontent.com (optional, asked when you first use Download ZIP on ChatGPT): to download the images and files of a ChatGPT conversation into the ZIP.
+- oaiusercontent.com and googleusercontent.com (optional, asked when you first use Download ZIP on ChatGPT or Gemini): to download the images and files of that conversation into the ZIP.
 - api.openai.com, api.anthropic.com and generativelanguage.googleapis.com: to send compression requests you started, with your own API key, to the provider you selected.
 
 

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LumiFlow",
-  "version": "2.8.0",
+  "version": "2.9.0",
   "description": "Never lose context switching AI chats. Auto-compress & inject across ChatGPT, Claude, Gemini, DeepSeek. Local storage only.",
   "author": "Helia Hon",
   "homepage_url": "https://github.com/lumihelia/lumiflow",
@@ -28,7 +28,8 @@
     "https://generativelanguage.googleapis.com/*"
   ],
   "optional_host_permissions": [
-    "https://*.oaiusercontent.com/*"
+    "https://*.oaiusercontent.com/*",
+    "https://*.googleusercontent.com/*"
   ],
   "action": {
     "default_popup": "popup.html",

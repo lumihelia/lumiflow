@@ -2,7 +2,7 @@
 
 [中文](USER_GUIDE_CN.md) · [English](USER_GUIDE_EN.md)
 
-For **LumiFlow v2.8.0**.
+For **LumiFlow v2.9.0**.
 
 LumiFlow currently supports two main paths:
 
@@ -49,7 +49,7 @@ Use either:
 - `DOWNLOAD MD`
 - `DOWNLOAD ZIP`: conversation + images + files
 
-`DOWNLOAD ZIP` packs the conversation together with its images and files: in `conversation.md`, images appear where they were in the chat and point to files in the ZIP's `media/` folder. It currently supports ChatGPT and Claude, including images and files you uploaded (PDF, Word, spreadsheets and so on) and AI-generated images; files for which Claude kept only the extracted text are saved as `.txt`. Files that have expired or cannot be downloaded are listed at the end of `conversation.md`. The first time you use it on ChatGPT, the browser asks whether LumiFlow may access the site where ChatGPT stores files (`oaiusercontent.com`). Gemini and DeepSeek export text only for now.
+`DOWNLOAD ZIP` packs the conversation together with its images and files: in `conversation.md`, images appear where they were in the chat and point to files in the ZIP's `media/` folder. It currently supports ChatGPT, Claude and Gemini, including images and files you uploaded (PDF, Word, spreadsheets and so on) and AI-generated images; files for which Claude kept only the extracted text are saved as `.txt`. Files that have expired or cannot be downloaded are listed at the end of `conversation.md`. Gemini is supported from v2.9.0 for images you uploaded and images Gemini generated, at full resolution when available. The first time you use it on ChatGPT or Gemini, the browser asks whether LumiFlow may access the site where they store files (`oaiusercontent.com` / `googleusercontent.com`). DeepSeek exports text only for now.
 
 The exported file keeps speaker labels such as User, ChatGPT, Claude, Gemini, and DeepSeek.
 
