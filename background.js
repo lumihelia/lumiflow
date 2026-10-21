@@ -40,6 +40,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true; // Keep channel open for async response
     }
 
+    if (request.action === 'openPermissionPage') {
+        chrome.tabs.create({ url: chrome.runtime.getURL(`permissions.html?platform=${encodeURIComponent(request.platform || '')}`) });
+        sendResponse({ ok: true });
+        return false;
+    }
+
+    if (request.action === 'captureVisibleTab') {
+        captureSenderTab(sender)
+            .then(dataUrl => sendResponse({ ok: true, dataUrl }))
+            .catch(error => sendResponse({ ok: false, error: error.message }));
+        return true;
+    }
+
     if (request.action === 'fetchBinary') {
         fetchBinaryForZip(request.url)
             .then(result => sendResponse({ ok: true, ...result }))
@@ -58,10 +71,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // ========================================
 // ZIP 附件下载
 // ========================================
-// 页面脚本受网站的跨域限制，拿不到放在其他域名上的文件（例如 ChatGPT 的图片在 oaiusercontent.com）。
+// 页面脚本受网站的跨域限制，拿不到放在其他域名上的文件（ChatGPT 的在 oaiusercontent.com，Gemini 的在 googleusercontent.com）。
 // 后台在用户授权了对应网站后可以下载，再以 base64 交回页面打包。
 // 只接受下面这些域名，避免被当成任意地址的下载代理。
-const ZIP_DOWNLOAD_HOSTS = ['oaiusercontent.com'];
+const ZIP_DOWNLOAD_HOSTS = ['oaiusercontent.com', 'googleusercontent.com'];
 
 async function fetchBinaryForZip(url) {
     const parsed = new URL(url);
@@ -71,15 +84,43 @@ async function fetchBinaryForZip(url) {
         throw new Error('host not allowed');
     }
 
-    let response;
-    try {
-        response = await fetch(parsed.href);
-    } catch (error) {
-        // 用户没有授权这个网站时，请求会被浏览器拦下
-        throw new Error('no access to the file host (allow it when LumiFlow asks)');
+    if (chrome.permissions && chrome.permissions.contains) {
+        const granted = await chrome.permissions.contains({ origins: [`https://${parsed.hostname}/*`] }).catch(() => true);
+        if (!granted) {
+            throw new Error(`NO_ACCESS: LumiFlow does not have access to ${parsed.hostname} yet`);
+        }
     }
+
+    // 先带着登录状态请求（Gemini 上传的图片可能需要），网络层失败再不带登录状态试一次。
+    // 失败时尽量写出真实原因，方便排查：网络错误、被跳转到哪里、HTTP 状态码、拿到的是网页还是图片。
+    // 网络卡住时不要无限等待
+    const timed = (options) => {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 30000);
+        return fetch(parsed.href, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+    };
+
+    let response;
+    let firstError = null;
+    try {
+        response = await timed({ credentials: 'include' });
+    } catch (error) {
+        firstError = error;
+        try {
+            response = await timed({ credentials: 'omit' });
+        } catch (secondError) {
+            throw new Error(`network error from ${parsed.hostname}: ${firstError.message}${await describeRedirect(parsed.href)}`);
+        }
+    }
+
+    const finalHost = response.url ? new URL(response.url).hostname : parsed.hostname;
+    const redirectNote = response.redirected && finalHost !== parsed.hostname ? ` after redirect to ${finalHost}` : '';
     if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        throw new Error(`HTTP ${response.status} from ${parsed.hostname}${redirectNote}`);
+    }
+    const contentType = response.headers.get('content-type') || '';
+    if (/text\/html/i.test(contentType)) {
+        throw new Error(`got a web page instead of the file${redirectNote} (sign-in required?)`);
     }
 
     const bytes = new Uint8Array(await response.arrayBuffer());
@@ -90,8 +131,36 @@ async function fetchBinaryForZip(url) {
     }
     return {
         base64: btoa(binary),
-        contentType: response.headers.get('content-type') || ''
+        contentType
     };
+}
+
+// 截取发出请求的那个分页的当前画面（用于下载不到原图时，从画面上保存图片）。
+// 浏览器限制每秒最多截取两次，所以两次之间至少间隔 600ms；
+// 分页不在前台时截到的会是别的画面，所以先确认它仍是当前分页。
+let lastCaptureAt = 0;
+
+async function captureSenderTab(sender) {
+    if (!sender.tab) throw new Error('no tab');
+    const tab = await chrome.tabs.get(sender.tab.id);
+    if (!tab.active) throw new Error('switch back to the conversation tab to capture images');
+
+    const wait = Math.max(0, lastCaptureAt + 600 - Date.now());
+    if (wait > 0) await new Promise(resolve => setTimeout(resolve, wait));
+    lastCaptureAt = Date.now();
+
+    return await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
+}
+
+// 网络层失败时，看看是不是被跳转到了另一个网站（跳转目标没有权限时，浏览器会直接拦下）
+async function describeRedirect(url) {
+    try {
+        const probe = await fetch(url, { credentials: 'include', redirect: 'manual' });
+        if (probe.type === 'opaqueredirect') return ' (the file host redirected to another site)';
+        return ` (direct request returned HTTP ${probe.status})`;
+    } catch (error) {
+        return '';
+    }
 }
 
 // ========================================

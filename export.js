@@ -4,6 +4,12 @@
 // popup.js（通过 <script>）和 content.js（作为 content script 先于它加载）共用。
 // =========================================
 
+// 各平台存放图片和附件的网站。访问它们是可选权限，第一次使用 DOWNLOAD ZIP 时才申请。
+const ZIP_FILE_HOST_ORIGINS = {
+    chatgpt: ['https://*.oaiusercontent.com/*'],
+    gemini: ['https://*.googleusercontent.com/*']
+};
+
 function getAiSpeakerLabel(platform) {
     const names = {
         claude: 'Claude',

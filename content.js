@@ -1,11 +1,11 @@
-// content.js - LumiFlow v2.8.0
+// content.js - LumiFlow v2.9.2
 // ===================================
 // Content script for AI chat platforms
 // Only runs on claude.ai, chatgpt.com, gemini.google.com, chat.deepseek.com
 // (controlled by manifest.json content_scripts.matches)
 // ===================================
 
-console.log("LumiFlow v2.8.0: Content script loaded on", window.location.hostname);
+console.log("LumiFlow v2.9.2: Content script loaded on", window.location.hostname);
 
 // ========================================
 // DOMAIN PROTECTION (双重防护)
@@ -455,7 +455,9 @@ async function handleGetConversation(sendResponse) {
 // 整个流程在页面里完成：popup 点完就可以关掉，进度显示在页面右下角。
 // 附件目前来自 ChatGPT / Claude 的平台对话数据；读不到时仍然导出文字，并在文件末尾说明。
 
-const ATTACHMENT_PLATFORMS = [PLATFORMS.CHATGPT, PLATFORMS.CLAUDE];
+const ATTACHMENT_PLATFORMS = [PLATFORMS.CHATGPT, PLATFORMS.CLAUDE, PLATFORMS.GEMINI];
+// 这两个平台的附件来自平台对话数据；读不到时只能导出文字。Gemini 本来就从页面读取。
+const PLATFORM_DATA_ATTACHMENTS = [PLATFORMS.CHATGPT, PLATFORMS.CLAUDE];
 
 async function handleDownloadZip(sendResponse) {
   try {
@@ -489,35 +491,68 @@ async function handleDownloadZip(sendResponse) {
     const files = [];
     const mediaPaths = {};
     const failed = [];
+    const captured = [];
+    console.log(`[ZIP] ${messages.length} messages, ${unique.length} attachments`);
 
     for (let i = 0; i < unique.length; i++) {
       const att = unique[i];
       showPageToast(`LumiFlow: downloading attachments ${i + 1}/${unique.length}…`);
       try {
-        const { bytes, mimeType } = await fetchAttachment(att);
+        console.log('[ZIP] Downloading', att.name, (att.source && att.source.urls) || att.id);
+        const { bytes, mimeType } = await fetchPageImageOrAttachment(att);
+        console.log('[ZIP] Downloaded', att.name, bytes.length, 'bytes', mimeType);
         const path = buildMediaFileName(files.length + 1, attachmentFileName(att, mimeType), mimeType);
         files.push({ name: path, data: bytes });
         mediaPaths[att.id] = path;
       } catch (error) {
         console.warn('[ZIP] Attachment failed:', att.name, error.message);
+        // 下载不到原文件、但图片就显示在页面上时，从画面上截取（分辨率等于屏幕上显示的大小）
+        const img = pageImageElements.get(att.id);
+        if (img && img.isConnected) {
+          try {
+            showPageToast(`LumiFlow: capturing image ${i + 1}/${unique.length} from the screen…`);
+            const { bytes, mimeType } = await captureImageFromScreen(img);
+            const path = buildMediaFileName(files.length + 1, `${att.name} (screen capture).png`, mimeType);
+            files.push({ name: path, data: bytes });
+            mediaPaths[att.id] = path;
+            captured.push({ name: att.name, reason: error.message.replace(/^NO_ACCESS:\s*/, '') });
+            continue;
+          } catch (captureError) {
+            console.warn('[ZIP] Screen capture failed:', att.name, captureError.message);
+            failed.push({ name: att.name, reason: `${error.message}; screen capture: ${captureError.message}` });
+            continue;
+          }
+        }
         failed.push({ name: att.name, reason: error.message });
       }
     }
 
     let markdown = formatConversation(messages, platform, 'md', mediaPaths);
 
+    // 因为没有访问图片网站的权限而失败：打开权限页面，让用户允许后再下载一次
+    const needsAccess = failed.some(f => /^NO_ACCESS:/.test(f.reason));
+    failed.forEach(f => { f.reason = f.reason.replace(/^NO_ACCESS:\s*/, ''); });
+
     const notes = [];
+    if (captured.length > 0) {
+      notes.push(`${captured.length} image(s) were saved as screen captures, at the size shown on the page, because the original files could not be downloaded (${captured[0].reason}).`);
+    }
     if (failed.length > 0) {
-      notes.push('Not included:\n' + failed.map(f => `- ${f.name}: ${f.reason}`).join('\n'));
+      let note = 'Not included:\n' + failed.map(f => `- ${f.name}: ${f.reason}`).join('\n');
+      if (needsAccess) {
+        note += '\n\nTo include these, allow access in the LumiFlow tab that opened, then click DOWNLOAD ZIP again.';
+      }
+      notes.push(note);
     }
     if (!ATTACHMENT_PLATFORMS.includes(platform)) {
       notes.push(`Images and files are not collected on ${getAiSpeakerLabel(platform)} yet; this file contains the text only.`);
-    } else if (!viaPlatformData) {
+    } else if (!viaPlatformData && PLATFORM_DATA_ATTACHMENTS.includes(platform)) {
       notes.push('LumiFlow could not read the platform conversation data, so this file contains the text only.');
     }
     if (notes.length > 0) {
       markdown += '\n\n---\n\n' + notes.join('\n\n');
     }
+    markdown += `\n\n---\n\nExported by LumiFlow v${chrome.runtime.getManifest().version}`;
 
     files.unshift({ name: 'conversation.md', data: markdown });
 
@@ -527,6 +562,12 @@ async function handleDownloadZip(sendResponse) {
     saveBytesAsFile(zip, filename, 'application/zip');
 
     const saved = files.length - 1;
+    if (needsAccess) {
+      chrome.runtime.sendMessage({ action: 'openPermissionPage', platform }).catch(() => {});
+      showPageToast(`LumiFlow: saved ${filename} without ${failed.length} file(s). Allow access in the tab that opened, then download again.`);
+      sendResponse({ status: 'success', filename, messageCount: messages.length, attachmentCount: saved, failedCount: failed.length, needsAccess: true });
+      return;
+    }
     showPageToast(failed.length > 0
       ? `LumiFlow: saved ${filename} (${saved} attachments, ${failed.length} could not be downloaded).`
       : `LumiFlow: saved ${filename} (${saved} attachments).`);
@@ -569,11 +610,14 @@ async function fetchAttachment(att) {
     return fetchBinary(url, chatgptAuthHeaders());
   }
 
-  if (source.platform === 'claude') {
+  if (source.platform === 'claude' || source.platform === 'gemini') {
+    // Gemini 的图片地址会跳转到别的网站，从网页再试一次也一样会被挡下；
+    // 它有更好的退路（页面里的 blob: 和截图），所以不走这一步，免得每张图白等
+    const options = { pageFallback: source.platform !== 'gemini' };
     let lastError = new Error('no download address');
     for (const url of source.urls || []) {
       try {
-        return await fetchBinary(url);
+        return await fetchBinary(url, {}, options);
       } catch (error) {
         lastError = error;
       }
@@ -616,8 +660,15 @@ async function resolveChatGPTDownloadUrl(fileId, conversationId) {
 }
 
 // 同一个网站上的文件直接下载（带着登录状态）；其他域名的文件交给后台下载
-async function fetchBinary(url, headers = {}) {
+async function fetchBinary(url, headers = {}, { pageFallback = true } = {}) {
   const absolute = new URL(url, window.location.href);
+
+  // 页面里的临时图片（blob:）和内嵌图片（data:）直接在页面里读取
+  if (absolute.protocol === 'blob:' || absolute.protocol === 'data:') {
+    const res = await pageFetch(absolute.href);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return { bytes: new Uint8Array(await res.arrayBuffer()), mimeType: res.headers.get('content-type') || '' };
+  }
 
   if (absolute.origin === window.location.origin) {
     const res = await fetchWithTimeout(absolute.href, { headers, credentials: 'include' }, 60000);
@@ -629,10 +680,83 @@ async function fetchBinary(url, headers = {}) {
   }
 
   const response = await chrome.runtime.sendMessage({ action: 'fetchBinary', url: absolute.href });
-  if (!response || !response.ok) {
-    throw new Error((response && response.error) || 'download failed');
+  if (response && response.ok) {
+    return { bytes: base64ToBytes(response.base64), mimeType: response.contentType || '' };
   }
-  return { bytes: base64ToBytes(response.base64), mimeType: response.contentType || '' };
+  const backgroundError = (response && response.error) || 'download failed';
+  if (/^NO_ACCESS:/.test(backgroundError) || !pageFallback) throw new Error(backgroundError);
+
+  // 后台下载失败时，再从网页本身试一次（有些图片网站允许被网页直接读取）
+  try {
+    const res = await fetchWithTimeout(absolute.href, { credentials: 'include', mode: 'cors' }, 10000);
+    if (res.ok && !/text\/html/i.test(res.headers.get('content-type') || '')) {
+      return { bytes: new Uint8Array(await res.arrayBuffer()), mimeType: res.headers.get('content-type') || '' };
+    }
+    throw new Error(`HTTP ${res.status}`);
+  } catch (pageError) {
+    throw new Error(`${backgroundError}; from the page: ${pageError.message}`);
+  }
+}
+
+// Gemini 自己会用登录状态把图片取回来，再换成网页内部的 blob: 地址显示。
+// 这个地址属于 gemini.google.com 本身，可以直接读取，不需要跨网站。
+// 图片可能要滚动到画面里才会换成 blob:，所以先滚过去、稍等，再看它当前的地址。
+async function fetchPageImageOrAttachment(att) {
+  const img = pageImageElements.get(att.id);
+  if (img && img.isConnected) {
+    const localSrc = () => [img.currentSrc, img.src, img.getAttribute('src')]
+      .find(src => typeof src === 'string' && /^(blob:|data:)/.test(src));
+
+    let src = localSrc();
+    if (!src) {
+      img.scrollIntoView({ block: 'center' });
+      for (let i = 0; i < 6 && !src; i++) {
+        await sleep(250);
+        src = localSrc();
+      }
+    }
+    if (src) {
+      try {
+        return await fetchBinary(src);
+      } catch (error) {
+        console.warn('[ZIP] Page image read failed, trying the original address:', error.message);
+      }
+    }
+  }
+  return fetchAttachment(att);
+}
+
+// 把图片滚动到画面中间，请后台截取当前画面，再按图片位置裁出来
+async function captureImageFromScreen(img) {
+  img.scrollIntoView({ block: 'center', inline: 'center' });
+  const toast = document.getElementById('lumiflow-toast');
+  if (toast) toast.style.visibility = 'hidden';
+  await sleep(500);
+
+  try {
+    const rect = img.getBoundingClientRect();
+    if (rect.width < 2 || rect.height < 2) throw new Error('image is not visible on the page');
+
+    const response = await chrome.runtime.sendMessage({ action: 'captureVisibleTab' });
+    if (!response || !response.ok) throw new Error((response && response.error) || 'screen capture failed');
+
+    const shot = await createImageBitmap(await (await fetch(response.dataUrl)).blob());
+    const scale = shot.width / window.innerWidth;
+    const sx = Math.max(0, rect.left * scale);
+    const sy = Math.max(0, rect.top * scale);
+    const sw = Math.min(shot.width - sx, rect.width * scale);
+    const sh = Math.min(shot.height - sy, rect.height * scale);
+    if (sw < 2 || sh < 2) throw new Error('image is outside the visible area');
+
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(sw);
+    canvas.height = Math.round(sh);
+    canvas.getContext('2d').drawImage(shot, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    return { bytes: new Uint8Array(await blob.arrayBuffer()), mimeType: 'image/png' };
+  } finally {
+    if (toast) toast.style.visibility = '';
+  }
 }
 
 function base64ToBytes(base64) {
@@ -1038,7 +1162,7 @@ function getMessageCountSelector(platform) {
     case PLATFORMS.CHATGPT:
       return '[data-message-author-role]';
     case PLATFORMS.GEMINI:
-      return '[class*="message"], [data-message-id]';
+      return 'user-query, model-response';
     case PLATFORMS.DEEPSEEK:
       return '.ds-markdown';
     default:
@@ -1272,7 +1396,116 @@ function extractChatGPTConversation() {
   return messages;
 }
 
+// Gemini 的页面结构：每轮对话是 <user-query> 和 <model-response> 两个自定义元素。
+// - 提问正文在 .query-text-line 段落里；同一个提问里还有一个给读屏软件用的隐藏标题
+//   （.cdk-visually-hidden），里面是 "You said" 加完整提问，整块读取会让提问出现两次。
+// - 回答正文在 message-content 的 .markdown 里；正文中夹着引用来源的小标签
+//   （source-inline-chip 等，显示为 "PNG"、"PNG + 4"），要先剔除。
+// - 用户上传的图片是 img[data-test-id="uploaded-img"]。
+const GEMINI_NOISE_SELECTORS = [
+  '.cdk-visually-hidden', 'source-inline-chip', 'sources-carousel-inline', 'source-footnote',
+  'sources-list', 'message-actions', 'mat-icon', 'gem-icon', 'button'
+].join(', ');
+// 判断图片时不排除 button：生成的图片通常包在"点击放大"的按钮里
+const GEMINI_IMAGE_EXCLUDE = [
+  '.cdk-visually-hidden', 'source-inline-chip', 'sources-carousel-inline', 'source-footnote',
+  'sources-list', 'message-actions', 'mat-icon', 'gem-icon'
+].join(', ');
+
 function extractGeminiConversation() {
+  const turns = document.querySelectorAll('user-query, model-response');
+  if (turns.length === 0) return extractGeminiConversationLegacy();
+
+  const messages = [];
+  turns.forEach(el => {
+    if (el.tagName.toLowerCase() === 'user-query') {
+      const lines = Array.from(el.querySelectorAll('.query-text-line'));
+      const text = lines.length > 0
+        ? lines.map(line => getElementText(line).trim()).join('\n')
+        : textWithout(el.querySelector('.query-text') || el, GEMINI_NOISE_SELECTORS);
+      const attachments = collectGeminiImages(el.querySelectorAll('img[data-test-id="uploaded-img"]'), 'uploaded-image');
+      const content = cleanMessageContent(text);
+      if (content || attachments.length > 0) appendMessage(messages, 'user', content, { attachments });
+    } else {
+      const body = el.querySelector('message-content .markdown') || el.querySelector('.markdown') || el.querySelector('message-content');
+      // Gemini 生成的图片：回答区域里的内容图片（排除图标、头像、来源标签里的小图）
+      const generatedImgs = Array.from(el.querySelectorAll('img')).filter(img =>
+        !img.closest(GEMINI_IMAGE_EXCLUDE) &&
+        !img.closest('thinking-overlay') &&
+        !/icon|avatar|sparkle|favicon/i.test(img.className + ' ' + (img.getAttribute('data-test-id') || '')) &&
+        (img.naturalWidth === 0 || img.naturalWidth >= 96)
+      );
+      const attachments = collectGeminiImages(generatedImgs, 'generated-image');
+      // 正文里的图片换成位置标记，导出时图片就出现在原来的位置
+      const markers = new Map();
+      generatedImgs.forEach(img => {
+        const att = attachments.find(a => a.id === `gemini:${img.currentSrc || img.src}`);
+        if (att) markers.set(img, attachmentMarker(att.id));
+      });
+      const content = body ? cleanMessageContent(textWithout(body, GEMINI_NOISE_SELECTORS, markers)) : '';
+      if (content || attachments.length > 0) appendMessage(messages, 'model', content, { attachments });
+    }
+  });
+
+  return messages;
+}
+
+// 取一个元素的可见文字，但去掉其中的某些子元素。
+// 复制一份放到屏幕外再读 innerText，才能保留段落和列表的换行。
+// imageMarkers：Map<原页面里的 img, 文字>，在复制品里把这些图片换成对应文字。
+function textWithout(el, selectors, imageMarkers = null) {
+  if (!el) return '';
+  const clone = el.cloneNode(true);
+  if (imageMarkers && imageMarkers.size > 0) {
+    const originals = Array.from(el.querySelectorAll('img'));
+    const copies = Array.from(clone.querySelectorAll('img'));
+    originals.forEach((img, i) => {
+      if (imageMarkers.has(img) && copies[i]) {
+        // 图片常包在"点击放大"的按钮里，而按钮会被当作界面元素删掉；连同按钮一起换成标记
+        const wrapper = copies[i].closest('button');
+        const target = wrapper && clone.contains(wrapper) ? wrapper : copies[i];
+        target.replaceWith(document.createTextNode(`\n${imageMarkers.get(img)}\n`));
+      }
+    });
+  }
+  clone.querySelectorAll(selectors).forEach(n => n.remove());
+  // 复制品放进页面时，其中的图片和影片会被浏览器重新加载；读文字不需要它们
+  clone.querySelectorAll('img, video, audio, picture, source, iframe').forEach(n => n.remove());
+  const holder = document.createElement('div');
+  holder.style.cssText = 'position:fixed;left:-100000px;top:0;width:800px;white-space:normal;';
+  holder.appendChild(clone);
+  document.body.appendChild(holder);
+  const text = clone.innerText || clone.textContent || '';
+  holder.remove();
+  return text;
+}
+
+// 页面上显示这些图片的元素：下载失败时，用来从画面上截取
+const pageImageElements = new Map();
+
+function collectGeminiImages(imgs, fallbackName) {
+  const result = [];
+  Array.from(imgs).forEach((img, i) => {
+    const src = img.currentSrc || img.src || '';
+    if (!/^(https:|blob:|data:)/.test(src)) return;
+    const urls = [src];
+    // Google 图片地址末尾的 =s512 / =w400-h300 是缩放参数，=s0 取原图；失败时退回页面上显示的那张
+    if (/googleusercontent\.com\//.test(src) && /=[a-z0-9-]+$/i.test(src)) {
+      urls.unshift(src.replace(/=[a-z0-9-]+$/i, '=s0'));
+    }
+    const id = `gemini:${src}`;
+    pageImageElements.set(id, img);
+    result.push({
+      id,
+      kind: 'image',
+      name: fallbackName,
+      source: { platform: 'gemini', urls }
+    });
+  });
+  return result;
+}
+
+function extractGeminiConversationLegacy() {
   const messages = [];
 
   // Gemini-specific: Only get actual conversation messages

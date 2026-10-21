@@ -7,7 +7,7 @@
  */
 
 // ========================================
-// LumiFlow v2.8.0 - Popup Script
+// LumiFlow v2.9.2 - Popup Script
 // ========================================
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -807,29 +807,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // ========================================
     // DOWNLOAD ZIP（对话 + 图片 + 附件）
     // ========================================
-    // ChatGPT 的图片和文件放在 oaiusercontent.com，需要用户授权一次才能下载。
+    // ChatGPT 的图片和文件放在 oaiusercontent.com，Gemini 的在 googleusercontent.com，需要用户授权一次才能下载。
     // 授权请求必须在点击事件里立刻发出（不能先 await 别的东西），所以平台在 popup 打开时就记下来。
-    const ZIP_OPTIONAL_ORIGINS = {
-        chatgpt: ['https://*.oaiusercontent.com/*']
-    };
-    let activeTabPlatform = null;
-    getActiveTab().then(tab => {
-        const url = (tab && tab.url) || '';
-        if (/^https:\/\/(chatgpt\.com|chat\.openai\.com)\//.test(url)) activeTabPlatform = 'chatgpt';
-        else if (/^https:\/\/claude\.ai\//.test(url)) activeTabPlatform = 'claude';
-    }).catch(() => {});
-
     const downloadZipBtn = document.getElementById('download-zip-btn');
     if (downloadZipBtn) {
-        downloadZipBtn.addEventListener('click', () => {
-            // 授权窗口弹出时 popup 可能被浏览器关掉，所以不等授权结果，立刻开始打包。
-            // 读取对话需要几秒，通常用户在此期间就点完了授权；没来得及的文件会列在 ZIP 的"未包含"里。
-            const origins = ZIP_OPTIONAL_ORIGINS[activeTabPlatform];
-            if (origins && chrome.permissions && chrome.permissions.request) {
-                chrome.permissions.request({ origins }).catch(() => false);
-            }
-            startZipDownload();
-        });
+        // 不预先要求权限：很多文件（Claude 的、部分 ChatGPT 的）就在 AI 网站本身，不需要额外权限。
+        // 真的因为缺权限下载失败时，页面会请后台打开 permissions.html，在那里点"允许"后再下载一次。
+        // （不在 popup 里直接弹授权窗口：popup 一失去焦点就会被关掉，授权请求可能跟着被取消。）
+        downloadZipBtn.addEventListener('click', () => startZipDownload());
     }
 
     async function startZipDownload() {
@@ -846,6 +831,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 if (response.status !== 'success') {
                     showMessage(`ZIP failed: ${response.message || 'Unknown error'}`, "error");
+                    return;
+                }
+                if (response.needsAccess) {
+                    showMessage(`Saved ${response.filename} without ${response.failedCount} file(s). Allow access in the tab that just opened, then click DOWNLOAD ZIP again.`, "info");
                     return;
                 }
                 const failedNote = response.failedCount > 0 ? `, ${response.failedCount} not downloaded` : '';

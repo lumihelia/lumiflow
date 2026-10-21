@@ -4,7 +4,7 @@ Carry an AI conversation into the next one.
 
 [中文](README.md) · [English](README.en.md)
 
-[![Version](https://img.shields.io/badge/version-2.8.0-blue.svg)](manifest.json)
+[![Version](https://img.shields.io/badge/version-2.9.2-blue.svg)](manifest.json)
 [![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-brightgreen.svg)](https://chromewebstore.google.com/detail/lumiflow/onekhnkogijnmpddmceomhibhenhffaf)
 [![Firefox Add-ons](https://img.shields.io/badge/Firefox-Add--ons-orange.svg)](https://addons.mozilla.org/firefox/addon/lumiflow/)
 [![License](https://img.shields.io/badge/license-MIT-purple.svg)](LICENSE)
@@ -16,7 +16,7 @@ It currently supports two main workflows:
 - **Full conversation export**: download the current conversation as TXT or Markdown with speaker labels for archiving, reading, or further processing.
 - **Checkpoint migration**: distill the goals, decisions, constraints, examples, and progress that still matter into editable segments, then inject them into a new AI conversation.
 
-Current version: **v2.8.0**.
+Current version: **v2.9.2**.
 
 ## When it is useful
 
@@ -35,7 +35,7 @@ Open LumiFlow on a supported conversation page and click:
 - `DOWNLOAD MD`
 - `DOWNLOAD ZIP`: conversation + images + files
 
-`DOWNLOAD ZIP` packs the conversation together with its images and files: in `conversation.md`, images appear where they were in the chat and point to files in the ZIP's `media/` folder. It currently supports ChatGPT and Claude, including images and files you uploaded (PDF, Word, spreadsheets and so on) and AI-generated images; files for which Claude kept only the extracted text are saved as `.txt`. Files that have expired or cannot be downloaded are listed at the end of `conversation.md`. The first time you use it on ChatGPT, the browser asks whether LumiFlow may access the site where ChatGPT stores files (`oaiusercontent.com`). Gemini and DeepSeek export text only for now.
+`DOWNLOAD ZIP` packs the conversation together with its images and files: in `conversation.md`, images appear where they were in the chat and point to files in the ZIP's `media/` folder. It currently supports ChatGPT, Claude and Gemini, including images and files you uploaded (PDF, Word, spreadsheets and so on) and AI-generated images; files for which Claude kept only the extracted text are saved as `.txt`. Files that have expired or cannot be downloaded are listed at the end of `conversation.md`. Gemini is supported from v2.9.0 for images you uploaded and images Gemini generated: LumiFlow reads the image already loaded in the page, or saves a screen capture when it cannot. When images live on another host (Gemini's `googleusercontent.com`, some ChatGPT files on `oaiusercontent.com`), the first ZIP is saved without them and a LumiFlow page opens where you can allow access; then click `DOWNLOAD ZIP` again. DeepSeek exports text only for now.
 
 The export keeps speaker labels such as User / ChatGPT / Claude / Gemini / DeepSeek.
 
@@ -70,7 +70,7 @@ Segments can be edited, deleted, and reordered. When the checkpoint is ready, op
 | Gemini | Supported |
 | DeepSeek (`chat.deepseek.com`) | Full export and inject supported; added in v2.5.0 |
 | Full TXT / Markdown conversation export | Supported |
-| ZIP export (conversation + images + files) | ChatGPT and Claude (new in v2.8.0) |
+| ZIP export (conversation + images + files) | ChatGPT and Claude (v2.8.0), Gemini images (v2.9.0) |
 | Auto AI compression | Supported; requires your Gemini / OpenAI / Anthropic API key |
 | Manual ABSORB | Supported; no API key required |
 | Edit / delete / reorder segments | Supported |
