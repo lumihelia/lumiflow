@@ -49,7 +49,12 @@ A checkpoint keeps the information the next conversation still needs.
 
 #### Auto Mode
 
-Click `COMPRESS`. LumiFlow uses the Gemini, OpenAI, or Anthropic API that you configure to turn the current conversation into a structured checkpoint.
+Click `COMPRESS`. Auto Mode has two routes:
+
+- **Auto in-chat (no API key)**: when API Compression is off or no key is saved, LumiFlow inserts a compression prompt into the current AI conversation, tries to send it, and waits for that platform to write the checkpoint. If it asks you to send the prompt yourself, do so, then use Manual `ABSORB` once the reply is complete.
+- **Auto API (optional)**: when API Compression is on and a valid key is saved, LumiFlow compresses the conversation in the background through your Gemini, OpenAI, or Anthropic API, without sending a prompt into the current chat.
+
+Results from either route are picked up as segments when you reopen the popup; the API route keeps running after the popup closes.
 
 Use it for long conversations when you want a fast summary of goals, state, decisions, examples, and next steps.
 
@@ -57,7 +62,7 @@ Use it for long conversations when you want a fast summary of goals, state, deci
 
 Switch to Manual Mode, select the material you want to preserve on the page, then click `ABSORB`.
 
-Use it when you want precise control over context or do not want to use a third-party compression API.
+Use it when you want precise control over context. `ABSORB` keeps the exact text you selected, without calling a model to compress it.
 
 Segments can be edited, deleted, and reordered. When the checkpoint is ready, open a new ChatGPT / Claude / Gemini / DeepSeek conversation and click `INJECT`. LumiFlow places the checkpoint into the input field; you remain in control of whether to send it.
 
@@ -71,7 +76,8 @@ Segments can be edited, deleted, and reordered. When the checkpoint is ready, op
 | DeepSeek (`chat.deepseek.com`) | Full export and inject supported; added in v2.5.0 |
 | Full TXT / Markdown conversation export | Supported |
 | ZIP export (conversation + images + files) | ChatGPT and Claude (v2.8.0), Gemini images (v2.9.0) |
-| Auto AI compression | Supported; requires your Gemini / OpenAI / Anthropic API key |
+| Auto in-chat compression | Supported; uses the current AI web conversation, no API key |
+| Auto API compression | Optional; enable API Compression and save your own Gemini / OpenAI / Anthropic API key |
 | Manual ABSORB | Supported; no API key required |
 | Edit / delete / reorder segments | Supported |
 | Checkpoint Markdown / JSON export | Supported |
@@ -116,7 +122,9 @@ Firefox (temporary; reload after restarting the browser):
 
 LumiFlow itself has no subscription and does not impose a usage-count limit.
 
-Auto Mode sends compression requests directly to the API provider you choose. You use your own API key, so the provider's quota, pricing, and terms still apply.
+Auto in-chat uses the AI website account you are signed in to; that platform's subscription, quota, and terms still apply.
+
+Auto API sends compression requests directly to the API provider you choose. You use your own API key, so the provider's quota, pricing, and terms still apply.
 
 Current models: Gemini `gemini-flash-latest` (Google's official alias for the current Flash model), OpenAI `gpt-6.1-sol`, Anthropic `claude-opus-5-5`. They are defined in one place, `MODELS` at the top of `background.js`.
 
@@ -126,7 +134,7 @@ Manual Mode, full conversation export, and local segment management do not requi
 
 LumiFlow currently has no hosted backend, account system, analytics, or usage tracking.
 
-Segments, settings, and saved API keys are stored locally in the browser. When API compression is enabled, the conversation content needed for compression is sent directly from the extension to the selected Google / OpenAI / Anthropic API. It does not pass through a LumiFlow server.
+Segments, settings, and saved API keys are stored locally in the browser. Auto in-chat sends the compression prompt into the current AI web conversation, where that platform processes it. When API compression is enabled, the conversation content needed for compression is sent directly from the extension to the selected Google / OpenAI / Anthropic API. It does not pass through a LumiFlow server.
 
 Read the full policy:
 

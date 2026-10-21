@@ -1,4 +1,6 @@
-# 📋 LumiFlow v2.3.1 Release Checklist
+# 📋 LumiFlow v2.3.1 Release Checklist — Historical
+
+Preserved record of the January 22, 2026 v2.3.1 release. The completed boxes, commands, local path and "Ready to Release" status below describe that version only; do not reuse them as the current release checklist. For the current version see the [README](README.en.md) and the latest changelog ([v2.9.2](CHANGELOG_v2.9.2.md)).
 
 ## ✅ Pre-Release
 

@@ -72,22 +72,31 @@ A checkpoint stores what the next conversation still needs to know. It contains 
 
 Use Auto Mode when a conversation is long and you want to quickly extract goals, current state, decisions, constraints, examples, failed attempts, and next steps.
 
-Steps:
+Auto Mode has two routes. With API Compression off it uses the first; with it on and a key saved, the second.
 
-1. Open LumiFlow on a ChatGPT / Claude / Gemini / DeepSeek conversation page.
-2. Open Settings.
-3. Enable **API Compression**.
-4. Choose Gemini, OpenAI, or Anthropic.
-5. Enter your own API key and save it.
-6. Return to the main view and keep Auto Mode enabled.
-7. Click `COMPRESS`.
-8. The result appears in the Checkpoint Segments area.
+#### Auto in-chat: let the current web conversation write it (no API key)
 
-Auto Mode sends the material needed for compression directly to the API provider you select. Your API key and LumiFlow settings are stored locally in the browser. The provider's own quota, pricing, and privacy terms still apply.
+1. Open LumiFlow on a ChatGPT / Claude / Gemini / DeepSeek conversation page and keep Auto Mode enabled.
+2. Make sure **Enable API Compression** is off in Settings (this route is also used when no key is saved).
+3. Click `COMPRESS`. LumiFlow inserts a compression prompt into the current chat and tries to send it.
+4. Wait for the AI to write the checkpoint. If you see "Prompt injected. Click Send", send it yourself, then use Manual `ABSORB` once the reply is complete.
+5. Clicking the page may close the popup. Reopen LumiFlow after the reply is done; the result appears under Checkpoint Segments. If it does not, select the checkpoint in the AI's reply and use Manual `ABSORB`.
+
+No API key is needed, but this uses the website account you are signed in to; that platform's subscription, quota, and terms still apply.
+
+#### Auto API: compress in the background (optional)
+
+1. Open LumiFlow on the conversation page and open Settings.
+2. Enable **API Compression** and choose Gemini, OpenAI, or Anthropic.
+3. Enter your own valid API key and save it.
+4. Return to the main view, keep Auto Mode, and click `COMPRESS`.
+5. Compression runs in the background. You can close the popup and reopen it afterwards to see the segments.
+
+This route sends no prompt into the current chat; the material to compress goes directly to the API provider you selected. Your API key and LumiFlow settings are stored locally in the browser. The provider's own quota, pricing, and privacy terms still apply.
 
 ### Manual Mode: choose what moves forward
 
-Use Manual Mode when you only want to keep specific material, want precise control over the checkpoint, or do not want to use a third-party compression API.
+Use Manual Mode when you only want to keep specific material or want precise control over the checkpoint.
 
 Steps:
 
@@ -97,7 +106,7 @@ Steps:
 4. Click `ABSORB`.
 5. Select more material and repeat as needed.
 
-Each absorbed selection becomes a segment.
+Each absorbed selection becomes a segment, keeping the exact text you selected without calling a model to compress it.
 
 ## Manage checkpoint segments
 
@@ -132,7 +141,7 @@ LumiFlow supports:
 - OpenAI API
 - Anthropic API
 
-API compression is optional. Manual Mode, full conversation export, and local segment management do not require a model API.
+API compression is optional. Auto in-chat, Manual Mode, full conversation export, and local segment management need no API key; Auto in-chat still uses the website platform's model and account quota.
 
 ### Cost
 
@@ -167,16 +176,14 @@ From v2.7.0 the defaults use `Alt+Shift`: the previous `Ctrl+Shift+C` / `Ctrl+Sh
 Check that:
 
 - you are on a supported AI conversation page;
-- API compression is enabled;
-- the provider and API key are saved;
-- the provider still has available quota;
-- your network can reach the selected API.
+- for Auto in-chat: you are signed in to the website and can send messages; check whether the prompt was sent and whether the AI is still writing; reopen the popup after it finishes;
+- for Auto API: API Compression is enabled, the provider and a valid key are saved, and the API quota and network are available.
 
 If you need to keep moving, switch to Manual Mode and use `ABSORB` to build the checkpoint yourself.
 
 ### INJECT does not place content in the input field
 
-Click the target AI input field first so it has focus, then try `INJECT` again. If the page was just refreshed, allow the page and extension content script to finish loading before retrying.
+Click the target AI input field first so it has focus, then try `INJECT` again. If the page was just refreshed, allow the page and extension content script to finish loading before retrying. If no input box is found, LumiFlow copies the checkpoint to the clipboard; paste it in and review it before sending.
 
 ### Full export only contains part of the conversation
 
