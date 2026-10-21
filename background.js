@@ -46,6 +46,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return false;
     }
 
+    if (request.action === 'captureVisibleTab') {
+        captureSenderTab(sender)
+            .then(dataUrl => sendResponse({ ok: true, dataUrl }))
+            .catch(error => sendResponse({ ok: false, error: error.message }));
+        return true;
+    }
+
     if (request.action === 'fetchBinary') {
         fetchBinaryForZip(request.url)
             .then(result => sendResponse({ ok: true, ...result }))
@@ -86,14 +93,21 @@ async function fetchBinaryForZip(url) {
 
     // 先带着登录状态请求（Gemini 上传的图片可能需要），网络层失败再不带登录状态试一次。
     // 失败时尽量写出真实原因，方便排查：网络错误、被跳转到哪里、HTTP 状态码、拿到的是网页还是图片。
+    // 网络卡住时不要无限等待
+    const timed = (options) => {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 30000);
+        return fetch(parsed.href, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+    };
+
     let response;
     let firstError = null;
     try {
-        response = await fetch(parsed.href, { credentials: 'include' });
+        response = await timed({ credentials: 'include' });
     } catch (error) {
         firstError = error;
         try {
-            response = await fetch(parsed.href, { credentials: 'omit' });
+            response = await timed({ credentials: 'omit' });
         } catch (secondError) {
             throw new Error(`network error from ${parsed.hostname}: ${firstError.message}${await describeRedirect(parsed.href)}`);
         }
@@ -119,6 +133,23 @@ async function fetchBinaryForZip(url) {
         base64: btoa(binary),
         contentType
     };
+}
+
+// 截取发出请求的那个分页的当前画面（用于下载不到原图时，从画面上保存图片）。
+// 浏览器限制每秒最多截取两次，所以两次之间至少间隔 600ms；
+// 分页不在前台时截到的会是别的画面，所以先确认它仍是当前分页。
+let lastCaptureAt = 0;
+
+async function captureSenderTab(sender) {
+    if (!sender.tab) throw new Error('no tab');
+    const tab = await chrome.tabs.get(sender.tab.id);
+    if (!tab.active) throw new Error('switch back to the conversation tab to capture images');
+
+    const wait = Math.max(0, lastCaptureAt + 600 - Date.now());
+    if (wait > 0) await new Promise(resolve => setTimeout(resolve, wait));
+    lastCaptureAt = Date.now();
+
+    return await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
 }
 
 // 网络层失败时，看看是不是被跳转到了另一个网站（跳转目标没有权限时，浏览器会直接拦下）

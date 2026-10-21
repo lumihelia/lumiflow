@@ -1,11 +1,11 @@
-// content.js - LumiFlow v2.9.1
+// content.js - LumiFlow v2.9.2
 // ===================================
 // Content script for AI chat platforms
 // Only runs on claude.ai, chatgpt.com, gemini.google.com, chat.deepseek.com
 // (controlled by manifest.json content_scripts.matches)
 // ===================================
 
-console.log("LumiFlow v2.9.1: Content script loaded on", window.location.hostname);
+console.log("LumiFlow v2.9.2: Content script loaded on", window.location.hostname);
 
 // ========================================
 // DOMAIN PROTECTION (双重防护)
@@ -491,6 +491,7 @@ async function handleDownloadZip(sendResponse) {
     const files = [];
     const mediaPaths = {};
     const failed = [];
+    const captured = [];
     console.log(`[ZIP] ${messages.length} messages, ${unique.length} attachments`);
 
     for (let i = 0; i < unique.length; i++) {
@@ -498,13 +499,30 @@ async function handleDownloadZip(sendResponse) {
       showPageToast(`LumiFlow: downloading attachments ${i + 1}/${unique.length}…`);
       try {
         console.log('[ZIP] Downloading', att.name, (att.source && att.source.urls) || att.id);
-        const { bytes, mimeType } = await fetchAttachment(att);
+        const { bytes, mimeType } = await fetchPageImageOrAttachment(att);
         console.log('[ZIP] Downloaded', att.name, bytes.length, 'bytes', mimeType);
         const path = buildMediaFileName(files.length + 1, attachmentFileName(att, mimeType), mimeType);
         files.push({ name: path, data: bytes });
         mediaPaths[att.id] = path;
       } catch (error) {
         console.warn('[ZIP] Attachment failed:', att.name, error.message);
+        // 下载不到原文件、但图片就显示在页面上时，从画面上截取（分辨率等于屏幕上显示的大小）
+        const img = pageImageElements.get(att.id);
+        if (img && img.isConnected) {
+          try {
+            showPageToast(`LumiFlow: capturing image ${i + 1}/${unique.length} from the screen…`);
+            const { bytes, mimeType } = await captureImageFromScreen(img);
+            const path = buildMediaFileName(files.length + 1, `${att.name} (screen capture).png`, mimeType);
+            files.push({ name: path, data: bytes });
+            mediaPaths[att.id] = path;
+            captured.push({ name: att.name, reason: error.message.replace(/^NO_ACCESS:\s*/, '') });
+            continue;
+          } catch (captureError) {
+            console.warn('[ZIP] Screen capture failed:', att.name, captureError.message);
+            failed.push({ name: att.name, reason: `${error.message}; screen capture: ${captureError.message}` });
+            continue;
+          }
+        }
         failed.push({ name: att.name, reason: error.message });
       }
     }
@@ -516,6 +534,9 @@ async function handleDownloadZip(sendResponse) {
     failed.forEach(f => { f.reason = f.reason.replace(/^NO_ACCESS:\s*/, ''); });
 
     const notes = [];
+    if (captured.length > 0) {
+      notes.push(`${captured.length} image(s) were saved as screen captures, at the size shown on the page, because the original files could not be downloaded (${captured[0].reason}).`);
+    }
     if (failed.length > 0) {
       let note = 'Not included:\n' + failed.map(f => `- ${f.name}: ${f.reason}`).join('\n');
       if (needsAccess) {
@@ -590,10 +611,13 @@ async function fetchAttachment(att) {
   }
 
   if (source.platform === 'claude' || source.platform === 'gemini') {
+    // Gemini 的图片地址会跳转到别的网站，从网页再试一次也一样会被挡下；
+    // 它有更好的退路（页面里的 blob: 和截图），所以不走这一步，免得每张图白等
+    const options = { pageFallback: source.platform !== 'gemini' };
     let lastError = new Error('no download address');
     for (const url of source.urls || []) {
       try {
-        return await fetchBinary(url);
+        return await fetchBinary(url, {}, options);
       } catch (error) {
         lastError = error;
       }
@@ -636,7 +660,7 @@ async function resolveChatGPTDownloadUrl(fileId, conversationId) {
 }
 
 // 同一个网站上的文件直接下载（带着登录状态）；其他域名的文件交给后台下载
-async function fetchBinary(url, headers = {}) {
+async function fetchBinary(url, headers = {}, { pageFallback = true } = {}) {
   const absolute = new URL(url, window.location.href);
 
   // 页面里的临时图片（blob:）和内嵌图片（data:）直接在页面里读取
@@ -660,17 +684,78 @@ async function fetchBinary(url, headers = {}) {
     return { bytes: base64ToBytes(response.base64), mimeType: response.contentType || '' };
   }
   const backgroundError = (response && response.error) || 'download failed';
-  if (/^NO_ACCESS:/.test(backgroundError)) throw new Error(backgroundError);
+  if (/^NO_ACCESS:/.test(backgroundError) || !pageFallback) throw new Error(backgroundError);
 
   // 后台下载失败时，再从网页本身试一次（有些图片网站允许被网页直接读取）
   try {
-    const res = await fetchWithTimeout(absolute.href, { credentials: 'include', mode: 'cors' }, 30000);
+    const res = await fetchWithTimeout(absolute.href, { credentials: 'include', mode: 'cors' }, 10000);
     if (res.ok && !/text\/html/i.test(res.headers.get('content-type') || '')) {
       return { bytes: new Uint8Array(await res.arrayBuffer()), mimeType: res.headers.get('content-type') || '' };
     }
     throw new Error(`HTTP ${res.status}`);
   } catch (pageError) {
     throw new Error(`${backgroundError}; from the page: ${pageError.message}`);
+  }
+}
+
+// Gemini 自己会用登录状态把图片取回来，再换成网页内部的 blob: 地址显示。
+// 这个地址属于 gemini.google.com 本身，可以直接读取，不需要跨网站。
+// 图片可能要滚动到画面里才会换成 blob:，所以先滚过去、稍等，再看它当前的地址。
+async function fetchPageImageOrAttachment(att) {
+  const img = pageImageElements.get(att.id);
+  if (img && img.isConnected) {
+    const localSrc = () => [img.currentSrc, img.src, img.getAttribute('src')]
+      .find(src => typeof src === 'string' && /^(blob:|data:)/.test(src));
+
+    let src = localSrc();
+    if (!src) {
+      img.scrollIntoView({ block: 'center' });
+      for (let i = 0; i < 6 && !src; i++) {
+        await sleep(250);
+        src = localSrc();
+      }
+    }
+    if (src) {
+      try {
+        return await fetchBinary(src);
+      } catch (error) {
+        console.warn('[ZIP] Page image read failed, trying the original address:', error.message);
+      }
+    }
+  }
+  return fetchAttachment(att);
+}
+
+// 把图片滚动到画面中间，请后台截取当前画面，再按图片位置裁出来
+async function captureImageFromScreen(img) {
+  img.scrollIntoView({ block: 'center', inline: 'center' });
+  const toast = document.getElementById('lumiflow-toast');
+  if (toast) toast.style.visibility = 'hidden';
+  await sleep(500);
+
+  try {
+    const rect = img.getBoundingClientRect();
+    if (rect.width < 2 || rect.height < 2) throw new Error('image is not visible on the page');
+
+    const response = await chrome.runtime.sendMessage({ action: 'captureVisibleTab' });
+    if (!response || !response.ok) throw new Error((response && response.error) || 'screen capture failed');
+
+    const shot = await createImageBitmap(await (await fetch(response.dataUrl)).blob());
+    const scale = shot.width / window.innerWidth;
+    const sx = Math.max(0, rect.left * scale);
+    const sy = Math.max(0, rect.top * scale);
+    const sw = Math.min(shot.width - sx, rect.width * scale);
+    const sh = Math.min(shot.height - sy, rect.height * scale);
+    if (sw < 2 || sh < 2) throw new Error('image is outside the visible area');
+
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(sw);
+    canvas.height = Math.round(sh);
+    canvas.getContext('2d').drawImage(shot, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    return { bytes: new Uint8Array(await blob.arrayBuffer()), mimeType: 'image/png' };
+  } finally {
+    if (toast) toast.style.visibility = '';
   }
 }
 
@@ -1395,6 +1480,9 @@ function textWithout(el, selectors, imageMarkers = null) {
   return text;
 }
 
+// 页面上显示这些图片的元素：下载失败时，用来从画面上截取
+const pageImageElements = new Map();
+
 function collectGeminiImages(imgs, fallbackName) {
   const result = [];
   Array.from(imgs).forEach((img, i) => {
@@ -1405,8 +1493,10 @@ function collectGeminiImages(imgs, fallbackName) {
     if (/googleusercontent\.com\//.test(src) && /=[a-z0-9-]+$/i.test(src)) {
       urls.unshift(src.replace(/=[a-z0-9-]+$/i, '=s0'));
     }
+    const id = `gemini:${src}`;
+    pageImageElements.set(id, img);
     result.push({
-      id: `gemini:${src}`,
+      id,
       kind: 'image',
       name: fallbackName,
       source: { platform: 'gemini', urls }

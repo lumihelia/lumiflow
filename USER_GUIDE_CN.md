@@ -2,7 +2,7 @@
 
 [中文](USER_GUIDE_CN.md) · [English](USER_GUIDE_EN.md)
 
-适用于 **LumiFlow v2.9.1**。
+适用于 **LumiFlow v2.9.2**。
 
 LumiFlow 目前有两条主要路径：
 
@@ -49,7 +49,7 @@ Firefox（140 或更新版本）：打开 `about:debugging#/runtime/this-firefox
 - `DOWNLOAD MD`
 - `DOWNLOAD ZIP`：对话 + 图片 + 附件
 
-`DOWNLOAD ZIP` 会把对话和其中的图片、文件一起打包：`conversation.md` 里，图片出现在原来的位置，引用同一个 ZIP 里 `media/` 文件夹中的文件。目前支持 ChatGPT、Claude 和 Gemini，包括你上传的图片、PDF、Word、表格等文件，以及 AI 生成的图片；Claude 只保留了文字内容的文件会存成 `.txt`。已失效或无法下载的文件会列在 `conversation.md` 末尾。Gemini 支持你上传的图片和 Gemini 生成的图片（v2.9.0 起），会尽量取原图。如果图片放在另外的网站（Gemini 的 `googleusercontent.com`、部分 ChatGPT 文件的 `oaiusercontent.com`），第一次会先存好不含这些图片的 ZIP，并打开一个页面请你允许访问；允许后再点一次 `DOWNLOAD ZIP` 即可。DeepSeek 目前只导出文字。
+`DOWNLOAD ZIP` 会把对话和其中的图片、文件一起打包：`conversation.md` 里，图片出现在原来的位置，引用同一个 ZIP 里 `media/` 文件夹中的文件。目前支持 ChatGPT、Claude 和 Gemini，包括你上传的图片、PDF、Word、表格等文件，以及 AI 生成的图片；Claude 只保留了文字内容的文件会存成 `.txt`。已失效或无法下载的文件会列在 `conversation.md` 末尾。Gemini 支持你上传的图片和 Gemini 生成的图片（v2.9.0 起）：优先读取网页里已经载入的图片，读不到时保存屏幕截图。如果图片放在另外的网站（Gemini 的 `googleusercontent.com`、部分 ChatGPT 文件的 `oaiusercontent.com`），第一次会先存好不含这些图片的 ZIP，并打开一个页面请你允许访问；允许后再点一次 `DOWNLOAD ZIP` 即可。DeepSeek 目前只导出文字。
 
 导出文件会保留说话者标签，例如 User、ChatGPT、Claude、Gemini、DeepSeek。
 

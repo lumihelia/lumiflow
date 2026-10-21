@@ -1,4 +1,4 @@
-# LumiFlow v2.9.1
+# LumiFlow v2.9.2
 
 ## Gemini: images in DOWNLOAD ZIP, and correct text exports
 
@@ -38,3 +38,10 @@ Now LumiFlow asks only when it is actually needed:
 - "Not included" now says what actually happened: network error, HTTP status, a redirect to another site, or a sign-in page returned instead of the file.
 - If the background download fails, LumiFlow tries once more from the page itself.
 - `conversation.md` ends with the LumiFlow version that exported it.
+
+### Gemini images: read them from the page
+Testing on a real conversation showed that Gemini's image addresses (`lh3.googleusercontent.com`) redirect to another site, so downloading them from the extension fails even with access allowed. Gemini itself fetches each image with your sign-in and shows it from a page-local `blob:` address.
+
+- LumiFlow now scrolls each image into view and, if Gemini has switched it to a `blob:` address, reads the image from the page directly. No extra permission is needed.
+- If an image still cannot be read, LumiFlow saves a **screen capture** of it at the size shown on the page (`… (screen capture).png`), and says so at the end of `conversation.md`.
+- Gemini images no longer wait on a page-side retry that cannot succeed, and background downloads time out after 30 seconds, so a conversation with many images does not stall.

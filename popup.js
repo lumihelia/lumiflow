@@ -7,7 +7,7 @@
  */
 
 // ========================================
-// LumiFlow v2.9.1 - Popup Script
+// LumiFlow v2.9.2 - Popup Script
 // ========================================
 
 document.addEventListener('DOMContentLoaded', () => {
