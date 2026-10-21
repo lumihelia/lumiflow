@@ -72,22 +72,31 @@ Checkpoint 保存的是“下一段对话仍然需要知道什么”。它由一
 
 适合：对话很长，希望快速提取目标、当前状态、重要决定、约束、例子、失败尝试和下一步。
 
-使用步骤：
+Auto Mode 有两条路径。没有开启 API Compression 时走第一条，开启并保存了 key 时走第二条。
 
-1. 在 ChatGPT / Claude / Gemini / DeepSeek 的对话页面打开 LumiFlow。
-2. 点击右上角设置按钮。
-3. 开启 **Enable API Compression**。
-4. 选择 Gemini、OpenAI 或 Anthropic。
-5. 填入你自己的 API key 并保存。
-6. 回到主界面，保持 Auto Mode。
-7. 点击 `COMPRESS`。
-8. 压缩完成后，结果会进入 Checkpoint Segments 区域。
+#### Auto in-chat：用当前网页对话生成（不需要 API key）
 
-Auto Mode 会把需要压缩的内容直接发送给你选择的 API 提供商。API key 与 LumiFlow 设置保存在浏览器本地；Google / OpenAI / Anthropic 自己的额度、计费和隐私政策仍然适用。
+1. 在 ChatGPT / Claude / Gemini / DeepSeek 的对话页面打开 LumiFlow，保持 Auto Mode。
+2. 确认设置里的 **Enable API Compression** 是关闭的（没有保存 key 时也会走这条路径）。
+3. 点击 `COMPRESS`。LumiFlow 会在当前对话里插入压缩 prompt 并尝试发送。
+4. 等 AI 生成 checkpoint。如果提示 “Prompt injected. Click Send”，请手动发送，回复完成后用 Manual `ABSORB` 保存。
+5. 点击页面时 popup 可能会关闭。生成完成后重新打开 LumiFlow，结果会出现在 Checkpoint Segments 区域。如果没有出现，选中 AI 回复里的 checkpoint，用 Manual `ABSORB` 保存。
+
+这条路径不需要 API key，但会使用你当前登录的网站账号；该平台的订阅、额度和服务条款仍然适用。
+
+#### Auto API：在后台压缩（可选）
+
+1. 在对话页面打开 LumiFlow，点击右上角设置按钮。
+2. 开启 **Enable API Compression**，选择 Gemini、OpenAI 或 Anthropic。
+3. 填入你自己的有效 API key 并保存。
+4. 回到主界面，保持 Auto Mode，点击 `COMPRESS`。
+5. 压缩在后台完成。可以关闭 popup，完成后重新打开查看 segments。
+
+这条路径不会往当前对话发送 prompt，而是把需要压缩的内容直接发送给你选择的 API 提供商。API key 与 LumiFlow 设置保存在浏览器本地；Google / OpenAI / Anthropic 自己的额度、计费和隐私政策仍然适用。
 
 ### Manual Mode：手动选择需要带走的内容
 
-适合：只想保留少量关键片段，或者希望自己决定上下文，不使用第三方压缩 API。
+适合：只想保留少量关键片段，或者希望自己决定上下文。
 
 使用步骤：
 
@@ -97,7 +106,7 @@ Auto Mode 会把需要压缩的内容直接发送给你选择的 API 提供商�
 4. 点击 `ABSORB`。
 5. 继续选择其他片段并重复 `ABSORB`。
 
-每次吸收的内容都会成为一个 segment。
+每次吸收的内容都会成为一个 segment，保存的是你选中的原文，不调用模型压缩。
 
 ## 管理 Checkpoint Segments
 
@@ -132,7 +141,7 @@ LumiFlow 支持：
 - OpenAI API
 - Anthropic API
 
-API compression 是可选能力。Manual Mode、完整对话导出和本地 segment 管理不依赖模型 API。
+API compression 是可选能力。Auto in-chat、Manual Mode、完整对话导出和本地 segment 管理都不需要 API key；Auto in-chat 仍会使用网页平台的模型和账号额度。
 
 ### 关于费用
 
@@ -167,16 +176,14 @@ API key 保存在 `chrome.storage.local`。LumiFlow 当前没有自己的后端�
 先确认：
 
 - 当前页面是受支持的 AI 对话页；
-- API compression 已开启；
-- API provider 与 key 已保存；
-- 第三方 API 仍有可用额度；
-- 网络可以访问相应 API。
+- Auto in-chat：网站账号已登录、可以发送消息；prompt 是否已发出、AI 是否还在生成；生成完成后重新打开 popup；
+- Auto API：API Compression 已开启，provider 与有效 key 已保存，API 额度和网络都可用。
 
 如果只想继续工作，可以切到 Manual Mode，用 `ABSORB` 手动整理 checkpoint。
 
 ### INJECT 后输入框没有内容
 
-先点击目标 AI 的输入框让它获得焦点，再重新点击 `INJECT`。如果页面刚刷新，等页面和扩展脚本加载完成后再试。
+先点击目标 AI 的输入框让它获得焦点，再重新点击 `INJECT`。如果页面刚刷新，等页面和扩展脚本加载完成后再试。找不到输入框时，LumiFlow 会把 checkpoint 复制到剪贴板，请手动粘贴并检查后再发送。
 
 ### 完整导出只有部分消息
 

@@ -2,7 +2,7 @@
 
 [中文](TROUBLESHOOTING.zh-CN.md) · [English](TROUBLESHOOTING.md)
 
-适用于 **LumiFlow v2.4.0**。
+适用于 **LumiFlow v2.9.2**。
 
 遇到问题时，先从成本最低的一步开始：刷新当前 AI 对话页，等页面完全加载，再重新执行一次 LumiFlow 操作。
 
@@ -13,6 +13,7 @@ LumiFlow 当前支持这些对话页面：
 - `chatgpt.com` / `chat.openai.com`
 - `claude.ai`
 - `gemini.google.com`
+- `chat.deepseek.com`
 
 主页、设置页、登录页或其他没有实际对话的页面，可能没有可以提取的消息，也可能没有可以注入内容的输入框。
 
@@ -27,7 +28,7 @@ LumiFlow 当前支持这些对话页面：
 3. 打开 LumiFlow，重新执行操作。
 4. 仍然失败时，到 `chrome://extensions/`（Chrome）或 `about:addons`（Firefox）重新加载 LumiFlow。
 5. Firefox 用户请在页面上打开 LumiFlow：如果 popup 显示 **Allow access**，点击后刷新页面。
-5. 扩展重新加载后，再刷新一次 AI 页面。
+6. 扩展重新加载后，再刷新一次 AI 页面。
 
 安装或更新扩展之前已经打开的页面，通常需要刷新一次，新的 content script 才能进入页面。
 
@@ -47,13 +48,36 @@ LumiFlow 会优先读取网页应用当前使用的会话数据；这条路径�
 
 ### Gemini
 
-Gemini 导出依赖当前页面结构。Gemini 修改网页 markup 后，LumiFlow 的 extraction selectors 可能需要跟着更新。
+Gemini 导出从页面读取对话（`user-query` / `model-response` 元素），会先滚动加载更早的消息。Gemini 修改网页结构后，提取逻辑可能需要跟着更新。
 
 先刷新重试。刷新后仍然可以稳定复现时，提交截图和相关 console logs。
 
+### DeepSeek
+
+LumiFlow 会优先读取 DeepSeek 网页当前使用的会话数据（只导出正文，不含深度思考过程），失败时回退到页面提取。先确认已登录、打开的是正确的对话，再刷新重试。
+
+## DOWNLOAD ZIP 缺少图片或文件
+
+打开 ZIP 里的 `conversation.md`，拉到最底部。没能放进来的文件会列在 **Not included** 下面，每个都写明原因；最后一行是导出这个 ZIP 的 LumiFlow 版本。
+
+- **“LumiFlow does not have access to … yet”**：ChatGPT 的部分文件放在 `oaiusercontent.com`。LumiFlow 会打开一个带 **Allow access** 按钮的页面，允许后再点一次 `DOWNLOAD ZIP`。
+- **“file no longer available”** 或 **HTTP 404 / 410**：平台已经不再提供这个文件，过期的上传无法找回。
+- **Gemini 的图片**：LumiFlow 读取 Gemini 已经在网页里载入的图片。制作 ZIP 期间请保持 Gemini 分页在前台，页面会自动滚动。读不到的图片会存成 `…(screen capture).png`，大小等于屏幕上显示的尺寸。
+- Gemini 的 PDF 附件和 DeepSeek 的图片暂时还不会被收集，ZIP 里只有它们的文字。
+
 ## COMPRESS 失败
 
-Auto Mode 需要已经配置好的第三方 API。
+先确认正在使用哪条 Auto 路径：只有 **Enable API Compression** 已开启、并且保存了 key 时才会调用 API；否则 checkpoint 会在当前网页对话里生成。
+
+### Auto in-chat（不需要 API key）
+
+- 确认已登录 AI 网站、可以发送消息，平台额度也还够用。
+- 检查压缩 prompt 是否已经发出。如果 LumiFlow 提示 “Prompt injected. Click Send”，请手动发送，等回复完成后用 Manual `ABSORB` 保存。
+- AI 生成期间请保持对话页面打开。LumiFlow 最多等待 60 秒（Gemini 和 DeepSeek 为 90 秒）；popup 的倒计时不代表平台已经生成完毕。
+- 点击页面时 popup 可能会关闭。重新打开即可接回已保存的 checkpoint；请在 30 分钟内打开，超过时间的待接回记录会过期。
+- 如果 AI 已经回复、却没有出现 segment，选中回复里的 checkpoint，用 Manual `ABSORB` 保存即可，不需要配置 API。
+
+### Auto API（可选）
 
 检查：
 
@@ -66,15 +90,17 @@ Auto Mode 需要已经配置好的第三方 API。
 
 LumiFlow 当前支持 Gemini、OpenAI 和 Anthropic API compression。
 
-API compression 暂时不可用时，可以切到 Manual Mode，用 `ABSORB` 在不调用模型 API 的情况下创建 segments。
+API compression 在后台执行，关闭 popup 不会中止；完成后重新打开即可看到结果。API 请求失败时不会自动改走网页对话：可以关闭 API Compression 后重新点 `COMPRESS`，改用当前对话生成；或切到 Manual Mode，用 `ABSORB` 保存需要的文字。
 
 ## INJECT 没有把文字放进输入框
 
-1. 打开目标 ChatGPT / Claude / Gemini 对话。
+1. 打开目标 ChatGPT / Claude / Gemini / DeepSeek 对话。
 2. 点击消息输入框，让输入框获得焦点。
 3. 打开 LumiFlow，再点击一次 `INJECT`。
 4. 页面刚刷新时，等编辑器和 extension content script 初始化完成再试。
 5. 输入框本身出现异常或平台刚更新 UI 时，刷新页面后重试。
+
+找不到输入框时，LumiFlow 会改为把 checkpoint 复制到剪贴板。请在输入框里手动粘贴，检查后再决定是否发送。
 
 AI 服务会持续修改编辑器实现。如果某次平台 UI 更新之后注入问题可以稳定复现，LumiFlow 可能需要新的兼容性修复。
 

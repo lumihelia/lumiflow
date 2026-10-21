@@ -49,7 +49,12 @@ Checkpoint 用来保存“下一段对话仍然需要知道什么”。
 
 #### Auto Mode
 
-点击 `COMPRESS`，LumiFlow 会使用你配置的 Gemini、OpenAI 或 Anthropic API，把当前对话压缩成结构化 checkpoint。
+点击 `COMPRESS`。Auto Mode 有两条路径：
+
+- **Auto in-chat（不需要 API key）**：没有开启 API Compression、或没有保存 key 时，LumiFlow 会在当前 AI 对话里插入压缩 prompt 并尝试发送，等待这个平台自己生成 checkpoint。如果提示需要手动发送，发送后等回复完成，再用 Manual `ABSORB` 保存。
+- **Auto API（可选）**：开启 API Compression 并保存了有效 key 时，LumiFlow 通过你配置的 Gemini、OpenAI 或 Anthropic API 在后台压缩，不会往当前对话里发送 prompt。
+
+两条路径的结果都可以在重新打开 popup 时接回 segments；API 路径在 popup 关闭后也会继续执行。
 
 适合：长对话、希望快速提取目标 / 状态 / 决定 / 例子 / 下一步。
 
@@ -57,7 +62,7 @@ Checkpoint 用来保存“下一段对话仍然需要知道什么”。
 
 切换到 Manual Mode，在页面中选中需要保留的内容，再点击 `ABSORB`。
 
-适合：只想保留特定片段、希望自己控制上下文、不想使用第三方压缩 API。
+适合：只想保留特定片段、希望自己控制上下文。`ABSORB` 保存的是你选中的原文，不调用模型压缩。
 
 生成的 segments 可以继续编辑、删除和排序。准备好之后，在新的 ChatGPT / Claude / Gemini / DeepSeek 会话中点击 `INJECT`，把 checkpoint 放进输入框，再由你决定是否发送。
 
@@ -71,7 +76,8 @@ Checkpoint 用来保存“下一段对话仍然需要知道什么”。
 | DeepSeek（`chat.deepseek.com`） | 支持完整对话导出与注入；v2.5.0 新增 |
 | TXT / Markdown 完整对话导出 | 支持 |
 | ZIP 导出（对话 + 图片 + 附件） | 支持 ChatGPT、Claude（v2.8.0）、Gemini 图片（v2.9.0） |
-| Auto AI compression | 支持，需要用户自己的 Gemini / OpenAI / Anthropic API key |
+| Auto in-chat compression | 支持，使用当前 AI 网页对话，不需要 API key |
+| Auto API compression | 可选，需要开启 API Compression 并保存自己的 Gemini / OpenAI / Anthropic API key |
 | Manual ABSORB | 支持，不需要 API key |
 | Segments 编辑 / 删除 / 拖动排序 | 支持 |
 | Checkpoint Markdown / JSON 导出 | 支持 |
@@ -116,7 +122,9 @@ Firefox（临时加载，重启浏览器后需要重新加载）：
 
 LumiFlow 本身没有订阅，也没有人为设置使用次数限制。
 
-Auto Mode 的压缩请求会直接发送给你选择的 API 提供商。你需要使用自己的 API key，因此 Google、OpenAI 或 Anthropic 自己的额度、计费和服务条款仍然适用。
+Auto in-chat 使用你当前登录的 AI 网站账号，该平台的订阅、额度和服务条款仍然适用。
+
+Auto API 的压缩请求会直接发送给你选择的 API 提供商。你需要使用自己的 API key，因此 Google、OpenAI 或 Anthropic 自己的额度、计费和服务条款仍然适用。
 
 目前使用的模型：Gemini `gemini-flash-latest`（Google 官方别名，始终指向当前 Flash 模型）、OpenAI `gpt-6.1-sol`、Anthropic `claude-opus-5-5`。模型名集中写在 `background.js` 顶部的 `MODELS`。
 
@@ -126,7 +134,7 @@ Manual Mode、完整对话导出和本地 segments 管理不需要模型 API。
 
 LumiFlow 当前没有自己的服务器、账号系统、analytics 或 usage tracking。
 
-Segments、设置和你保存的 API key 存在浏览器本地。启用 API compression 时，用于压缩的对话内容会从扩展直接发送给你选择的 Google / OpenAI / Anthropic API；请求不会经过 LumiFlow 自有服务器。
+Segments、设置和你保存的 API key 存在浏览器本地。Auto in-chat 会把压缩 prompt 发进当前 AI 网页对话，由该平台处理。启用 API compression 时，用于压缩的对话内容会从扩展直接发送给你选择的 Google / OpenAI / Anthropic API；请求不会经过 LumiFlow 自有服务器。
 
 更完整的说明见：
 
