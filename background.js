@@ -40,6 +40,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true; // Keep channel open for async response
     }
 
+    if (request.action === 'openPermissionPage') {
+        chrome.tabs.create({ url: chrome.runtime.getURL(`permissions.html?platform=${encodeURIComponent(request.platform || '')}`) });
+        sendResponse({ ok: true });
+        return false;
+    }
+
     if (request.action === 'fetchBinary') {
         fetchBinaryForZip(request.url)
             .then(result => sendResponse({ ok: true, ...result }))
@@ -69,6 +75,13 @@ async function fetchBinaryForZip(url) {
         ZIP_DOWNLOAD_HOSTS.some(host => parsed.hostname === host || parsed.hostname.endsWith('.' + host));
     if (!allowed) {
         throw new Error('host not allowed');
+    }
+
+    if (chrome.permissions && chrome.permissions.contains) {
+        const granted = await chrome.permissions.contains({ origins: [`https://${parsed.hostname}/*`] }).catch(() => true);
+        if (!granted) {
+            throw new Error(`NO_ACCESS: LumiFlow does not have access to ${parsed.hostname} yet`);
+        }
     }
 
     let response;

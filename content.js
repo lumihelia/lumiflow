@@ -511,9 +511,17 @@ async function handleDownloadZip(sendResponse) {
 
     let markdown = formatConversation(messages, platform, 'md', mediaPaths);
 
+    // 因为没有访问图片网站的权限而失败：打开权限页面，让用户允许后再下载一次
+    const needsAccess = failed.some(f => /^NO_ACCESS:/.test(f.reason));
+    failed.forEach(f => { f.reason = f.reason.replace(/^NO_ACCESS:\s*/, ''); });
+
     const notes = [];
     if (failed.length > 0) {
-      notes.push('Not included:\n' + failed.map(f => `- ${f.name}: ${f.reason}`).join('\n'));
+      let note = 'Not included:\n' + failed.map(f => `- ${f.name}: ${f.reason}`).join('\n');
+      if (needsAccess) {
+        note += '\n\nTo include these, allow access in the LumiFlow tab that opened, then click DOWNLOAD ZIP again.';
+      }
+      notes.push(note);
     }
     if (!ATTACHMENT_PLATFORMS.includes(platform)) {
       notes.push(`Images and files are not collected on ${getAiSpeakerLabel(platform)} yet; this file contains the text only.`);
@@ -532,6 +540,12 @@ async function handleDownloadZip(sendResponse) {
     saveBytesAsFile(zip, filename, 'application/zip');
 
     const saved = files.length - 1;
+    if (needsAccess) {
+      chrome.runtime.sendMessage({ action: 'openPermissionPage', platform }).catch(() => {});
+      showPageToast(`LumiFlow: saved ${filename} without ${failed.length} file(s). Allow access in the tab that opened, then download again.`);
+      sendResponse({ status: 'success', filename, messageCount: messages.length, attachmentCount: saved, failedCount: failed.length, needsAccess: true });
+      return;
+    }
     showPageToast(failed.length > 0
       ? `LumiFlow: saved ${filename} (${saved} attachments, ${failed.length} could not be downloaded).`
       : `LumiFlow: saved ${filename} (${saved} attachments).`);

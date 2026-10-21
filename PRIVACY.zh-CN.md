@@ -52,7 +52,7 @@ ChatGPT 和 Claude 会优先读取网页应用当前使用的会话数据，并�
 
 在 ChatGPT、Claude 或 Gemini 上点击 `DOWNLOAD ZIP` 时，LumiFlow 会从 AI 平台下载这段对话里的图片和文件（你上传的图片、PDF、AI 生成的图片等），和对话一起保存成你电脑上的一个 ZIP 文件。这些文件不会被发送到其他任何地方。
 
-ChatGPT 和 Gemini 把文件存放在另外的网站（`oaiusercontent.com`、`googleusercontent.com`）。访问它们是可选权限，第一次在对应平台上使用 `DOWNLOAD ZIP` 时浏览器会询问；如果你拒绝，ZIP 里只包含对话文字，不含这些文件。
+ChatGPT 和 Gemini 把文件存放在另外的网站（`oaiusercontent.com`、`googleusercontent.com`）。访问它们是可选权限：`DOWNLOAD ZIP` 第一次需要从这些网站下载文件时，LumiFlow 会打开一个页面，由你决定是否允许；如果你拒绝，ZIP 里只包含对话文字，不含这些文件。
 
 启用 API compression 后，其中完成压缩所需的内容会按照上一节所述发送给你选择的 API 提供商。
 

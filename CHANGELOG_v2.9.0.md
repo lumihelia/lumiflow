@@ -22,6 +22,14 @@ This also fixes DOWNLOAD TXT / MD, message counts and API compression on Gemini.
 
 ## Other
 - When reading text from a copy of the answer, images inside the copy are removed first, so the browser does not download them again.
-- New optional host permission `https://*.googleusercontent.com/*`, asked the first time you use DOWNLOAD ZIP on Gemini.
+- New optional host permission `https://*.googleusercontent.com/*` for Gemini images.
+
+### Asking for access, reliably
+In v2.8.0 the access request was made from the popup. The popup closes as soon as it loses focus, so the request could be cancelled before you saw it, and images on another host (Gemini's, and some of ChatGPT's) were silently left out ("no access to the file host").
+
+Now LumiFlow asks only when it is actually needed:
+1. DOWNLOAD ZIP starts right away. Files on the AI site itself (Claude, many ChatGPT files) need no extra access.
+2. If some files could not be downloaded for lack of access, the ZIP is still saved, and a small LumiFlow page (`permissions.html`) opens with an **Allow access** button.
+3. After allowing, click DOWNLOAD ZIP again to get the complete ZIP.
 - `[ZIP]` progress lines in the page console for troubleshooting.
 - README, user guides, privacy policy (md / zh / txt).

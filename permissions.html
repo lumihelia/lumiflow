@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LumiFlow · Allow image downloads</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { max-width: 520px; margin: 48px auto; padding: 0 16px; }
+        .card { background: var(--card-bg, #fff); border-radius: 12px; padding: 24px; }
+        h1 { font-size: 1.3rem; margin: 0 0 12px; }
+        p { line-height: 1.6; }
+        code { font-size: 0.9em; }
+        #allow-btn { width: 100%; margin-top: 16px; padding: 12px; }
+        #status { margin-top: 16px; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Allow LumiFlow to download images</h1>
+        <p id="explain">
+            To put images and files into the ZIP, LumiFlow needs to read them from the site where
+            <strong id="platform-name">this AI service</strong> stores them:
+            <code id="hosts"></code>
+        </p>
+        <p>
+            Files are saved only to your computer. You can remove this access at any time in your
+            browser's extension settings.
+        </p>
+        <button id="allow-btn" class="action-btn primary">Allow access</button>
+        <p id="status"></p>
+    </div>
+    <script src="export.js"></script>
+    <script src="permissions.js"></script>
+</body>
+</html>

@@ -36,7 +36,7 @@ IMAGES AND FILES (DOWNLOAD ZIP)
 
 When you click Download ZIP on ChatGPT, Claude or Gemini, LumiFlow downloads the images and files in that conversation (for example pictures you uploaded, PDFs, or AI-generated images) from the AI website and saves them, together with the conversation, as a ZIP file on your computer. These files go only to your own computer.
 
-ChatGPT and Gemini store files on separate sites (oaiusercontent.com and googleusercontent.com). The first time you use Download ZIP on ChatGPT or Gemini, your browser asks whether LumiFlow may access that site. This permission is optional: if you decline, the ZIP contains the conversation without those files, and you can change your choice later in the browser's extension settings.
+ChatGPT and Gemini store files on separate sites (oaiusercontent.com and googleusercontent.com). When Download ZIP needs a file from one of these sites for the first time, LumiFlow opens a page where you can allow access to that site. This permission is optional: if you decline, the ZIP contains the conversation without those files, and you can change your choice later in the browser's extension settings.
 
 
 API COMPRESSION (OPTIONAL)
