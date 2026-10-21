@@ -15,6 +15,10 @@ LumiFlow currently supports two main paths:
 
 Install directly from [LumiFlow - Chrome Web Store](https://chromewebstore.google.com/detail/lumiflow/onekhnkogijnmpddmceomhibhenhffaf).
 
+### Firefox Add-ons
+
+Install directly from [LumiFlow - Firefox Add-ons](https://addons.mozilla.org/firefox/addon/lumiflow/) (Firefox 140 or later).
+
 After installation, pin LumiFlow to the browser toolbar if you want quick access from ChatGPT, Claude, Gemini, and DeepSeek conversation pages.
 
 ### Load from source
