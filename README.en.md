@@ -6,6 +6,7 @@ Carry an AI conversation into the next one.
 
 [![Version](https://img.shields.io/badge/version-2.7.0-blue.svg)](manifest.json)
 [![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-brightgreen.svg)](https://chromewebstore.google.com/detail/lumiflow/onekhnkogijnmpddmceomhibhenhffaf)
+[![Firefox Add-ons](https://img.shields.io/badge/Firefox-Add--ons-orange.svg)](https://addons.mozilla.org/firefox/addon/lumiflow/)
 [![License](https://img.shields.io/badge/license-MIT-purple.svg)](LICENSE)
 
 LumiFlow is a browser extension for Chrome and Firefox, built for ChatGPT, Claude, Gemini, and DeepSeek. It treats conversations as context that can be organized, saved, and moved forward when a chat gets too long, you switch models, or you start a new session.
@@ -81,6 +82,10 @@ Segments can be edited, deleted, and reordered. When the checkpoint is ready, op
 ### Chrome Web Store
 
 Install the published version from the [Chrome Web Store](https://chromewebstore.google.com/detail/lumiflow/onekhnkogijnmpddmceomhibhenhffaf).
+
+### Firefox Add-ons
+
+Install from [Firefox Add-ons](https://addons.mozilla.org/firefox/addon/lumiflow/) (Firefox 140 or later).
 
 ### Load from source
 

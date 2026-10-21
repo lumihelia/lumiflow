@@ -15,6 +15,10 @@ LumiFlow 目前有两条主要路径：
 
 直接安装：[LumiFlow - Chrome Web Store](https://chromewebstore.google.com/detail/lumiflow/onekhnkogijnmpddmceomhibhenhffaf)
 
+### Firefox Add-ons
+
+直接安装：[LumiFlow - Firefox Add-ons](https://addons.mozilla.org/firefox/addon/lumiflow/)（需要 Firefox 140 或更新版本）
+
 安装后可以把 LumiFlow 固定到浏览器工具栏，方便在 ChatGPT、Claude、Gemini 和 DeepSeek 对话页随时打开。
 
 ### 从源码加载

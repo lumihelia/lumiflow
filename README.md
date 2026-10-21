@@ -6,6 +6,7 @@
 
 [![Version](https://img.shields.io/badge/version-2.7.0-blue.svg)](manifest.json)
 [![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-brightgreen.svg)](https://chromewebstore.google.com/detail/lumiflow/onekhnkogijnmpddmceomhibhenhffaf)
+[![Firefox Add-ons](https://img.shields.io/badge/Firefox-Add--ons-orange.svg)](https://addons.mozilla.org/firefox/addon/lumiflow/)
 [![License](https://img.shields.io/badge/license-MIT-purple.svg)](LICENSE)
 
 LumiFlow 是一个面向 ChatGPT、Claude、Gemini 和 DeepSeek 的浏览器扩展，支持 Chrome 和 Firefox。它把对话当作可以整理、保存和迁移的上下文，让长对话结束、模型切换或新会话开始时，重要信息仍然可以继续流动。
@@ -81,6 +82,10 @@ Checkpoint 用来保存“下一段对话仍然需要知道什么”。
 ### Chrome Web Store
 
 直接从 [Chrome Web Store](https://chromewebstore.google.com/detail/lumiflow/onekhnkogijnmpddmceomhibhenhffaf) 安装当前发布版本。
+
+### Firefox Add-ons
+
+直接从 [Firefox Add-ons](https://addons.mozilla.org/firefox/addon/lumiflow/) 安装（需要 Firefox 140 或更新版本）。
 
 ### 从源码加载
 
