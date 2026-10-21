@@ -50,7 +50,7 @@ ChatGPT 和 Claude 会优先读取网页应用当前使用的会话数据，并�
 
 ### 图片与文件（DOWNLOAD ZIP）
 
-在 ChatGPT、Claude 或 Gemini 上点击 `DOWNLOAD ZIP` 时，LumiFlow 会从 AI 平台下载这段对话里的图片和文件（你上传的图片、PDF、AI 生成的图片等），和对话一起保存成你电脑上的一个 ZIP 文件。这些文件不会被发送到其他任何地方。
+在 ChatGPT、Claude 或 Gemini 上点击 `DOWNLOAD ZIP` 时，LumiFlow 会从 AI 平台下载这段对话里的图片和文件（你上传的图片、PDF、AI 生成的图片等），和对话一起保存成你电脑上的一个 ZIP 文件。这些文件不会被发送到其他任何地方。在 Gemini 上，LumiFlow 读取网页已经载入的图片；读不到时，会截取当前分页画面中的这张图片（只裁出图片本身）并存进同一个 ZIP。截图不会被保留或发送到其他任何地方。
 
 ChatGPT 和 Gemini 把文件存放在另外的网站（`oaiusercontent.com`、`googleusercontent.com`）。访问它们是可选权限：`DOWNLOAD ZIP` 第一次需要从这些网站下载文件时，LumiFlow 会打开一个页面，由你决定是否允许；如果你拒绝，ZIP 里只包含对话文字，不含这些文件。
 
