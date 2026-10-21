@@ -1,11 +1,11 @@
-// content.js - LumiFlow v2.9.0
+// content.js - LumiFlow v2.9.1
 // ===================================
 // Content script for AI chat platforms
 // Only runs on claude.ai, chatgpt.com, gemini.google.com, chat.deepseek.com
 // (controlled by manifest.json content_scripts.matches)
 // ===================================
 
-console.log("LumiFlow v2.9.0: Content script loaded on", window.location.hostname);
+console.log("LumiFlow v2.9.1: Content script loaded on", window.location.hostname);
 
 // ========================================
 // DOMAIN PROTECTION (双重防护)
@@ -531,6 +531,7 @@ async function handleDownloadZip(sendResponse) {
     if (notes.length > 0) {
       markdown += '\n\n---\n\n' + notes.join('\n\n');
     }
+    markdown += `\n\n---\n\nExported by LumiFlow v${chrome.runtime.getManifest().version}`;
 
     files.unshift({ name: 'conversation.md', data: markdown });
 
@@ -655,10 +656,22 @@ async function fetchBinary(url, headers = {}) {
   }
 
   const response = await chrome.runtime.sendMessage({ action: 'fetchBinary', url: absolute.href });
-  if (!response || !response.ok) {
-    throw new Error((response && response.error) || 'download failed');
+  if (response && response.ok) {
+    return { bytes: base64ToBytes(response.base64), mimeType: response.contentType || '' };
   }
-  return { bytes: base64ToBytes(response.base64), mimeType: response.contentType || '' };
+  const backgroundError = (response && response.error) || 'download failed';
+  if (/^NO_ACCESS:/.test(backgroundError)) throw new Error(backgroundError);
+
+  // 后台下载失败时，再从网页本身试一次（有些图片网站允许被网页直接读取）
+  try {
+    const res = await fetchWithTimeout(absolute.href, { credentials: 'include', mode: 'cors' }, 30000);
+    if (res.ok && !/text\/html/i.test(res.headers.get('content-type') || '')) {
+      return { bytes: new Uint8Array(await res.arrayBuffer()), mimeType: res.headers.get('content-type') || '' };
+    }
+    throw new Error(`HTTP ${res.status}`);
+  } catch (pageError) {
+    throw new Error(`${backgroundError}; from the page: ${pageError.message}`);
+  }
 }
 
 function base64ToBytes(base64) {

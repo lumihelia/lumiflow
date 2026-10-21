@@ -4,7 +4,7 @@ Carry an AI conversation into the next one.
 
 [中文](README.md) · [English](README.en.md)
 
-[![Version](https://img.shields.io/badge/version-2.9.0-blue.svg)](manifest.json)
+[![Version](https://img.shields.io/badge/version-2.9.1-blue.svg)](manifest.json)
 [![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-brightgreen.svg)](https://chromewebstore.google.com/detail/lumiflow/onekhnkogijnmpddmceomhibhenhffaf)
 [![Firefox Add-ons](https://img.shields.io/badge/Firefox-Add--ons-orange.svg)](https://addons.mozilla.org/firefox/addon/lumiflow/)
 [![License](https://img.shields.io/badge/license-MIT-purple.svg)](LICENSE)
@@ -16,7 +16,7 @@ It currently supports two main workflows:
 - **Full conversation export**: download the current conversation as TXT or Markdown with speaker labels for archiving, reading, or further processing.
 - **Checkpoint migration**: distill the goals, decisions, constraints, examples, and progress that still matter into editable segments, then inject them into a new AI conversation.
 
-Current version: **v2.9.0**.
+Current version: **v2.9.1**.
 
 ## When it is useful
 

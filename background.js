@@ -84,16 +84,29 @@ async function fetchBinaryForZip(url) {
         }
     }
 
+    // 先带着登录状态请求（Gemini 上传的图片可能需要），网络层失败再不带登录状态试一次。
+    // 失败时尽量写出真实原因，方便排查：网络错误、被跳转到哪里、HTTP 状态码、拿到的是网页还是图片。
     let response;
+    let firstError = null;
     try {
-        // Gemini 上传的图片需要带上 Google 账号的登录状态才能读取
         response = await fetch(parsed.href, { credentials: 'include' });
     } catch (error) {
-        // 用户没有授权这个网站时，请求会被浏览器拦下
-        throw new Error('no access to the file host (allow it when LumiFlow asks)');
+        firstError = error;
+        try {
+            response = await fetch(parsed.href, { credentials: 'omit' });
+        } catch (secondError) {
+            throw new Error(`network error from ${parsed.hostname}: ${firstError.message}${await describeRedirect(parsed.href)}`);
+        }
     }
+
+    const finalHost = response.url ? new URL(response.url).hostname : parsed.hostname;
+    const redirectNote = response.redirected && finalHost !== parsed.hostname ? ` after redirect to ${finalHost}` : '';
     if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        throw new Error(`HTTP ${response.status} from ${parsed.hostname}${redirectNote}`);
+    }
+    const contentType = response.headers.get('content-type') || '';
+    if (/text\/html/i.test(contentType)) {
+        throw new Error(`got a web page instead of the file${redirectNote} (sign-in required?)`);
     }
 
     const bytes = new Uint8Array(await response.arrayBuffer());
@@ -104,8 +117,19 @@ async function fetchBinaryForZip(url) {
     }
     return {
         base64: btoa(binary),
-        contentType: response.headers.get('content-type') || ''
+        contentType
     };
+}
+
+// 网络层失败时，看看是不是被跳转到了另一个网站（跳转目标没有权限时，浏览器会直接拦下）
+async function describeRedirect(url) {
+    try {
+        const probe = await fetch(url, { credentials: 'include', redirect: 'manual' });
+        if (probe.type === 'opaqueredirect') return ' (the file host redirected to another site)';
+        return ` (direct request returned HTTP ${probe.status})`;
+    } catch (error) {
+        return '';
+    }
 }
 
 // ========================================

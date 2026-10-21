@@ -4,7 +4,7 @@
 
 [中文](README.md) · [English](README.en.md)
 
-[![Version](https://img.shields.io/badge/version-2.9.0-blue.svg)](manifest.json)
+[![Version](https://img.shields.io/badge/version-2.9.1-blue.svg)](manifest.json)
 [![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-brightgreen.svg)](https://chromewebstore.google.com/detail/lumiflow/onekhnkogijnmpddmceomhibhenhffaf)
 [![Firefox Add-ons](https://img.shields.io/badge/Firefox-Add--ons-orange.svg)](https://addons.mozilla.org/firefox/addon/lumiflow/)
 [![License](https://img.shields.io/badge/license-MIT-purple.svg)](LICENSE)
@@ -16,7 +16,7 @@ LumiFlow 是一个面向 ChatGPT、Claude、Gemini 和 DeepSeek 的浏览器扩�
 - **完整对话导出**：把当前对话直接下载为 TXT 或 Markdown，并保留说话者标签，适合归档、阅读和后续处理。
 - **Checkpoint 上下文迁移**：把真正需要延续的目标、决定、约束、例子和进度整理成可编辑的 segments，再注入新的 AI 会话。
 
-当前版本：**v2.9.0**。
+当前版本：**v2.9.1**。
 
 ## 适合什么场景
 

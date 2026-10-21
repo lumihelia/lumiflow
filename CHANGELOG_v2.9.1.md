@@ -1,4 +1,4 @@
-# LumiFlow v2.9.0
+# LumiFlow v2.9.1
 
 ## Gemini: images in DOWNLOAD ZIP, and correct text exports
 
@@ -33,3 +33,8 @@ Now LumiFlow asks only when it is actually needed:
 3. After allowing, click DOWNLOAD ZIP again to get the complete ZIP.
 - `[ZIP]` progress lines in the page console for troubleshooting.
 - README, user guides, privacy policy (md / zh / txt).
+
+### Clearer reasons when a file cannot be downloaded
+- "Not included" now says what actually happened: network error, HTTP status, a redirect to another site, or a sign-in page returned instead of the file.
+- If the background download fails, LumiFlow tries once more from the page itself.
+- `conversation.md` ends with the LumiFlow version that exported it.
