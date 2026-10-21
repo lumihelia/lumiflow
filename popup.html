@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LumiFlow v2.7.0</title>
+    <title>LumiFlow v2.8.0</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -14,7 +14,7 @@
                 <div style="flex: 1;"></div>
                 <div style="text-align: center; flex: 2;">
                     <h1 class="neon-text">LumiFlow</h1>
-                    <p class="subtitle">Context Manager v2.7</p>
+                    <p class="subtitle">Context Manager v2.8</p>
                 </div>
                 <div style="flex: 1; text-align: right;">
                     <button id="settings-btn" class="icon-btn" title="Settings" style="font-size: 1.2rem;">⚙</button>
@@ -88,6 +88,11 @@
                         <span class="btn-title">DOWNLOAD MD</span>
                     </button>
                 </div>
+                <div class="controls-row single">
+                    <button id="download-zip-btn" class="action-btn secondary" title="Conversation with images and files">
+                        <span class="btn-title">DOWNLOAD ZIP</span>
+                    </button>
+                </div>
             </div>
 
             <!-- Mode 2: distill what matters, then carry it into a new chat -->
@@ -140,6 +145,7 @@
     </div>
 
     <script src="prompts.js"></script>
+    <script src="export.js"></script>
     <script src="popup.js"></script>
 </body>
 </html>

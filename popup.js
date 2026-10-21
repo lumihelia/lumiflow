@@ -7,7 +7,7 @@
  */
 
 // ========================================
-// LumiFlow v2.7.0 - Popup Script
+// LumiFlow v2.8.0 - Popup Script
 // ========================================
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -742,49 +742,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 直接把整段对话抓下来存成文件，不再先复制到剪贴板或存成 segment——
     // 抓完即下载，不需要再粘贴到别的地方。
 
-    function getAiSpeakerLabel(platform) {
-        const names = {
-            claude: 'Claude',
-            chatgpt: 'ChatGPT',
-            gemini: 'Gemini',
-            deepseek: 'DeepSeek'
-        };
-        return names[platform] || 'AI';
-    }
-
-    // 把对话数组格式化成带说话人标注的文本（分块处理，避免长对话卡死 UI）
-    async function formatConversationForDownload(conversation, platform, format) {
-        const aiLabel = getAiSpeakerLabel(platform);
-        const CHUNK_SIZE = 50;
-        let text = '';
-
-        for (let i = 0; i < conversation.length; i += CHUNK_SIZE) {
-            const chunk = conversation.slice(i, i + CHUNK_SIZE);
-            const formatted = chunk.map(m => {
-                const speaker = m.role === 'user' ? 'User' : aiLabel;
-                const cleanContent = sanitizeContent(m.content);
-
-                if (!cleanContent) return null;
-
-                return format === 'md'
-                    ? `**${speaker}:**\n\n${cleanContent}`
-                    : `${speaker} said:\n${cleanContent}`;
-            })
-                .filter(item => item !== null)
-                .join('\n\n');
-
-            text += formatted + '\n\n';
-
-            if (conversation.length > 100) {
-                const progress = Math.min(i + CHUNK_SIZE, conversation.length);
-                showMessage(`Processing... ${progress}/${conversation.length} messages`, 'info');
-            }
-
-            await sleep(0);
-        }
-
-        return text.trim();
-    }
+    // 文字排版（formatConversation）和 ZIP 打包都在 export.js，和页面脚本共用
 
     async function scrapeAndDownload(format) {
         const formatLabel = format === 'md' ? 'Markdown' : 'TXT';
@@ -821,7 +779,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                const text = await formatConversationForDownload(conversation, response.platform, format);
+                const text = formatConversation(conversation, response.platform, format);
 
                 const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
                 const ext = format === 'md' ? 'md' : 'txt';
@@ -844,6 +802,58 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (downloadMdBtn) {
         downloadMdBtn.addEventListener('click', () => scrapeAndDownload('md'));
+    }
+
+    // ========================================
+    // DOWNLOAD ZIP（对话 + 图片 + 附件）
+    // ========================================
+    // ChatGPT 的图片和文件放在 oaiusercontent.com，需要用户授权一次才能下载。
+    // 授权请求必须在点击事件里立刻发出（不能先 await 别的东西），所以平台在 popup 打开时就记下来。
+    const ZIP_OPTIONAL_ORIGINS = {
+        chatgpt: ['https://*.oaiusercontent.com/*']
+    };
+    let activeTabPlatform = null;
+    getActiveTab().then(tab => {
+        const url = (tab && tab.url) || '';
+        if (/^https:\/\/(chatgpt\.com|chat\.openai\.com)\//.test(url)) activeTabPlatform = 'chatgpt';
+        else if (/^https:\/\/claude\.ai\//.test(url)) activeTabPlatform = 'claude';
+    }).catch(() => {});
+
+    const downloadZipBtn = document.getElementById('download-zip-btn');
+    if (downloadZipBtn) {
+        downloadZipBtn.addEventListener('click', () => {
+            // 授权窗口弹出时 popup 可能被浏览器关掉，所以不等授权结果，立刻开始打包。
+            // 读取对话需要几秒，通常用户在此期间就点完了授权；没来得及的文件会列在 ZIP 的"未包含"里。
+            const origins = ZIP_OPTIONAL_ORIGINS[activeTabPlatform];
+            if (origins && chrome.permissions && chrome.permissions.request) {
+                chrome.permissions.request({ origins }).catch(() => false);
+            }
+            startZipDownload();
+        });
+    }
+
+    async function startZipDownload() {
+        try {
+            const tab = await getActiveTab();
+            if (!validateTab(tab)) return;
+
+            showMessage("Building ZIP… You can close this popup; progress shows on the page.", "info");
+
+            sendTabMessageWithRetry(tab.id, { action: "download_zip" }, (response) => {
+                if (chrome.runtime.lastError || !response) {
+                    showMessage("No response. Try refreshing the page.", "error");
+                    return;
+                }
+                if (response.status !== 'success') {
+                    showMessage(`ZIP failed: ${response.message || 'Unknown error'}`, "error");
+                    return;
+                }
+                const failedNote = response.failedCount > 0 ? `, ${response.failedCount} not downloaded` : '';
+                showMessage(`✓ Saved ${response.filename} (${response.messageCount} messages, ${response.attachmentCount} attachments${failedNote})`, "success");
+            });
+        } catch (err) {
+            handleError(err, "Download ZIP");
+        }
     }
 
     // ========================================
@@ -1496,25 +1506,6 @@ document.addEventListener('DOMContentLoaded', () => {
             chrome.storage.local.get([key], result => resolve(result[key]));
         });
     }
-    // ========================================
-    // DATA SANITIZER FUNCTION
-    // ========================================
-    function sanitizeContent(text) {
-        if (!text) return "";
-
-        return text
-            // Step 1: Reduce excessive newlines (3+ → 2)
-            .replace(/\n{3,}/g, '\n\n')
-            // Step 2: Trim overall whitespace
-            .trim()
-            // Step 3: Remove trailing spaces only — leading spaces are code/list indentation
-            .split('\n')
-            .map(line => line.trimEnd())
-            .join('\n')
-            // Step 4: Final safety - max 2 consecutive newlines
-            .replace(/\n{3,}/g, '\n\n');
-    }
-
     // ========================================
     // UTILITY FUNCTIONS
     // ========================================

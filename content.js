@@ -1,11 +1,11 @@
-// content.js - LumiFlow v2.7.0
+// content.js - LumiFlow v2.8.0
 // ===================================
 // Content script for AI chat platforms
 // Only runs on claude.ai, chatgpt.com, gemini.google.com, chat.deepseek.com
 // (controlled by manifest.json content_scripts.matches)
 // ===================================
 
-console.log("LumiFlow v2.7.0: Content script loaded on", window.location.hostname);
+console.log("LumiFlow v2.8.0: Content script loaded on", window.location.hostname);
 
 // ========================================
 // DOMAIN PROTECTION (双重防护)
@@ -109,6 +109,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request.action === "get_conversation") {
     handleGetConversation(sendResponse);
+    return true;
+  }
+
+  if (request.action === "download_zip") {
+    handleDownloadZip(sendResponse);
     return true;
   }
 
@@ -445,6 +450,214 @@ async function handleGetConversation(sendResponse) {
 }
 
 // ========================================
+// DOWNLOAD ZIP（对话 + 图片 + 附件）
+// ========================================
+// 整个流程在页面里完成：popup 点完就可以关掉，进度显示在页面右下角。
+// 附件目前来自 ChatGPT / Claude 的平台对话数据；读不到时仍然导出文字，并在文件末尾说明。
+
+const ATTACHMENT_PLATFORMS = [PLATFORMS.CHATGPT, PLATFORMS.CLAUDE];
+
+async function handleDownloadZip(sendResponse) {
+  try {
+    const platform = detectPlatform();
+    showPageToast('LumiFlow: reading the conversation…');
+
+    let messages = await fetchConversationViaAPI(platform);
+    const viaPlatformData = !!messages;
+    if (!messages) {
+      if (platform !== PLATFORMS.UNKNOWN) await scrollToLoadAllMessages(platform);
+      messages = extractConversation();
+    }
+    messages = normalizeConversation(messages);
+
+    if (messages.length === 0) {
+      showPageToast('LumiFlow: no messages found on this page.');
+      sendResponse({ status: 'error', message: 'No messages found on page' });
+      return;
+    }
+
+    // 同一个文件可能在对话里出现多次，只下载一次
+    const unique = [];
+    const seen = new Set();
+    messages.forEach(m => (m.attachments || []).forEach(att => {
+      if (!seen.has(att.id)) {
+        seen.add(att.id);
+        unique.push(att);
+      }
+    }));
+
+    const files = [];
+    const mediaPaths = {};
+    const failed = [];
+
+    for (let i = 0; i < unique.length; i++) {
+      const att = unique[i];
+      showPageToast(`LumiFlow: downloading attachments ${i + 1}/${unique.length}…`);
+      try {
+        const { bytes, mimeType } = await fetchAttachment(att);
+        const path = buildMediaFileName(files.length + 1, attachmentFileName(att, mimeType), mimeType);
+        files.push({ name: path, data: bytes });
+        mediaPaths[att.id] = path;
+      } catch (error) {
+        console.warn('[ZIP] Attachment failed:', att.name, error.message);
+        failed.push({ name: att.name, reason: error.message });
+      }
+    }
+
+    let markdown = formatConversation(messages, platform, 'md', mediaPaths);
+
+    const notes = [];
+    if (failed.length > 0) {
+      notes.push('Not included:\n' + failed.map(f => `- ${f.name}: ${f.reason}`).join('\n'));
+    }
+    if (!ATTACHMENT_PLATFORMS.includes(platform)) {
+      notes.push(`Images and files are not collected on ${getAiSpeakerLabel(platform)} yet; this file contains the text only.`);
+    } else if (!viaPlatformData) {
+      notes.push('LumiFlow could not read the platform conversation data, so this file contains the text only.');
+    }
+    if (notes.length > 0) {
+      markdown += '\n\n---\n\n' + notes.join('\n\n');
+    }
+
+    files.unshift({ name: 'conversation.md', data: markdown });
+
+    const zip = createZip(files);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+    const filename = `lumiflow_${platform}_${timestamp}.zip`;
+    saveBytesAsFile(zip, filename, 'application/zip');
+
+    const saved = files.length - 1;
+    showPageToast(failed.length > 0
+      ? `LumiFlow: saved ${filename} (${saved} attachments, ${failed.length} could not be downloaded).`
+      : `LumiFlow: saved ${filename} (${saved} attachments).`);
+
+    sendResponse({
+      status: 'success',
+      filename,
+      messageCount: messages.length,
+      attachmentCount: saved,
+      failedCount: failed.length
+    });
+  } catch (error) {
+    console.error('[ZIP] Error:', error);
+    showPageToast(`LumiFlow: ZIP failed — ${error.message}`);
+    sendResponse({ status: 'error', message: error.message });
+  }
+}
+
+// 预览图的类型和原文件名对不上时（例如 Claude 只给了 PDF 首页的预览图），
+// 文件名写成 "report.pdf (preview).png"，避免把图片误存成 .pdf
+function attachmentFileName(att, mimeType) {
+  const name = att.name || '';
+  const type = (mimeType || '').split(';')[0].trim();
+  if (att.kind === 'file' && type.startsWith('image/') && !/\.(png|jpe?g|webp|gif|svg|heic)$/i.test(name)) {
+    const ext = (MIME_EXTENSIONS[type] || 'img');
+    return `${name} (preview).${ext}`;
+  }
+  return name;
+}
+
+async function fetchAttachment(att) {
+  if (typeof att.inlineText === 'string') {
+    return { bytes: new TextEncoder().encode(att.inlineText), mimeType: 'text/plain' };
+  }
+
+  const source = att.source || {};
+
+  if (source.platform === 'chatgpt') {
+    const url = await resolveChatGPTDownloadUrl(source.fileId, source.conversationId);
+    return fetchBinary(url, chatgptAuthHeaders());
+  }
+
+  if (source.platform === 'claude') {
+    let lastError = new Error('no download address');
+    for (const url of source.urls || []) {
+      try {
+        return await fetchBinary(url);
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    throw lastError;
+  }
+
+  throw new Error('unsupported attachment');
+}
+
+function chatgptAuthHeaders() {
+  return chatgptAuth ? { 'Authorization': `Bearer ${chatgptAuth.accessToken}` } : {};
+}
+
+// ChatGPT 的文件编号要先换成一个临时下载地址。两种新旧接口都试一下。
+async function resolveChatGPTDownloadUrl(fileId, conversationId) {
+  const candidates = [
+    `/backend-api/files/download/${encodeURIComponent(fileId)}?conversation_id=${encodeURIComponent(conversationId || '')}&inline=false`,
+    `/backend-api/files/${encodeURIComponent(fileId)}/download`
+  ];
+
+  let lastStatus = '';
+  for (const path of candidates) {
+    try {
+      const res = await fetchWithTimeout(path, { headers: chatgptAuthHeaders() }, 15000);
+      if (!res.ok) {
+        lastStatus = `HTTP ${res.status}`;
+        continue;
+      }
+      const data = await res.json();
+      if (data && typeof data.download_url === 'string' && data.download_url) {
+        return data.download_url;
+      }
+      lastStatus = (data && (data.error_code || data.status)) || 'no download address';
+    } catch (error) {
+      lastStatus = error.message;
+    }
+  }
+  throw new Error(`file no longer available (${lastStatus})`);
+}
+
+// 同一个网站上的文件直接下载（带着登录状态）；其他域名的文件交给后台下载
+async function fetchBinary(url, headers = {}) {
+  const absolute = new URL(url, window.location.href);
+
+  if (absolute.origin === window.location.origin) {
+    const res = await fetchWithTimeout(absolute.href, { headers, credentials: 'include' }, 60000);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return {
+      bytes: new Uint8Array(await res.arrayBuffer()),
+      mimeType: res.headers.get('content-type') || ''
+    };
+  }
+
+  const response = await chrome.runtime.sendMessage({ action: 'fetchBinary', url: absolute.href });
+  if (!response || !response.ok) {
+    throw new Error((response && response.error) || 'download failed');
+  }
+  return { bytes: base64ToBytes(response.base64), mimeType: response.contentType || '' };
+}
+
+function base64ToBytes(base64) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+function saveBytesAsFile(bytes, filename, mimeType) {
+  const blob = new Blob([bytes], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    a.remove();
+    URL.revokeObjectURL(url);
+  }, 10000);
+}
+
+// ========================================
 // DIRECT API EXTRACTION (ChatGPT / Claude)
 // ========================================
 // ChatGPT 和 Claude 的网页本身就是靠调用自己的后端对话接口来渲染整个对话的——
@@ -476,6 +689,9 @@ const pageFetch = (typeof content !== 'undefined' && content && typeof content.f
   ? content.fetch.bind(content)
   : fetch;
 
+// ChatGPT 下载附件需要同一个登录 token，读取对话时顺手记下
+let chatgptAuth = null;
+
 function fetchWithTimeout(url, options, timeoutMs = 8000) {
   return Promise.race([
     pageFetch(url, options),
@@ -497,6 +713,7 @@ async function fetchChatGPTConversationAPI() {
   const session = await sessionRes.json();
   const accessToken = session && session.accessToken;
   if (!accessToken) return null;
+  chatgptAuth = { accessToken, conversationId };
 
   const convRes = await fetchWithTimeout(`/backend-api/conversation/${conversationId}`, {
     headers: { 'Authorization': `Bearer ${accessToken}` }
@@ -526,21 +743,74 @@ async function fetchChatGPTConversationAPI() {
     if (!msg || !msg.content) continue;
 
     const role = msg.author && msg.author.role;
-    if (role !== 'user' && role !== 'assistant') continue; // 跳过 system/tool 等非对话内容
+    if (role !== 'user' && role !== 'assistant' && role !== 'tool') continue; // 跳过 system 等非对话内容
 
     // 页面上不显示的消息（自定义指令、记忆、系统注入的上下文等）不属于对话本身
     if (msg.metadata && msg.metadata.is_visually_hidden_from_conversation) continue;
 
-    const content = extractChatGPTNodeText(msg.content);
-    if (content && content.trim().length > 0) {
+    const attachments = extractChatGPTAttachments(msg, conversationId);
+
+    // tool 消息的文字是工具的内部输出，不导出；但 AI 生成的图片就在这里，算作回答的一部分
+    if (role === 'tool') {
+      if (attachments.length > 0) {
+        appendMessage(messages, 'model', '', { mergeSameRole: true, attachments });
+      }
+      continue;
+    }
+
+    const content = (extractChatGPTNodeText(msg.content) || '').trim();
+    if (content || attachments.length > 0) {
       // 一轮回答在接口里常被拆成多个 assistant 节点（调用工具前后各一段），合并成一条
-      appendMessage(messages, role === 'user' ? 'user' : 'model', content.trim(), {
-        mergeSameRole: role === 'assistant'
+      appendMessage(messages, role === 'user' ? 'user' : 'model', content, {
+        mergeSameRole: role === 'assistant',
+        attachments
       });
     }
   }
 
   return messages.length > 0 ? messages : null;
+}
+
+// 图片在 multimodal_text 的 parts 里以 asset_pointer 出现（file-service://file-xxx 或 sediment://file_xxx）；
+// 其他附件（PDF、Word、表格……）记录在 metadata.attachments。两处可能指向同一个文件，按 id 去重。
+function extractChatGPTAttachments(msg, conversationId) {
+  const result = [];
+  const seen = new Set();
+  const listed = (msg.metadata && Array.isArray(msg.metadata.attachments)) ? msg.metadata.attachments : [];
+  const nameOf = id => {
+    const hit = listed.find(a => a && a.id === id);
+    return hit && hit.name;
+  };
+
+  const parts = msg.content && Array.isArray(msg.content.parts) ? msg.content.parts : [];
+  parts.forEach(part => {
+    if (!part || typeof part !== 'object' || typeof part.asset_pointer !== 'string') return;
+    const fileId = part.asset_pointer.replace(/^[a-z-]+:\/\//i, '');
+    if (!fileId || seen.has(fileId)) return;
+    seen.add(fileId);
+    const generated = !!(part.metadata && (part.metadata.dalle || part.metadata.generation));
+    result.push({
+      id: `chatgpt:${fileId}`,
+      kind: 'image',
+      name: nameOf(fileId) || (generated ? 'generated-image' : 'image'),
+      source: { platform: 'chatgpt', fileId, conversationId }
+    });
+  });
+
+  listed.forEach(a => {
+    if (!a || !a.id || seen.has(a.id)) return;
+    seen.add(a.id);
+    const mimeType = a.mime_type || a.mimeType || '';
+    result.push({
+      id: `chatgpt:${a.id}`,
+      kind: mimeType.startsWith('image/') ? 'image' : 'file',
+      name: a.name || a.id,
+      mimeType,
+      source: { platform: 'chatgpt', fileId: a.id, conversationId }
+    });
+  });
+
+  return result;
 }
 
 // 只取真正显示给用户看的正文。code（搜索词、Python 代码调用）、thoughts（推理过程）、
@@ -584,13 +854,55 @@ async function fetchClaudeConversationAPI() {
   const messages = [];
   for (const m of ordered) {
     const role = m.sender === 'human' ? 'user' : 'model';
-    const content = extractClaudeMessageText(m);
-    if (content && content.trim().length > 0) {
-      appendMessage(messages, role, content.trim());
+    const content = (extractClaudeMessageText(m) || '').trim();
+    const attachments = extractClaudeAttachments(m);
+    if (content || attachments.length > 0) {
+      appendMessage(messages, role, content, { attachments });
     }
   }
 
   return messages.length > 0 ? messages : null;
+}
+
+// files_v2 / files：图片和文档，带同站点的预览地址（/api/{org}/files/{uuid}/preview）。
+// attachments：Claude 只保留了"读出来的文字"的文件（例如粘贴的长文本、部分文档），没有原文件，
+// 这种情况把文字本身存成 .txt。
+function extractClaudeAttachments(m) {
+  const result = [];
+  const files = Array.isArray(m.files_v2) ? m.files_v2 : (Array.isArray(m.files) ? m.files : []);
+
+  files.forEach(f => {
+    if (!f) return;
+    const urls = [
+      f.preview_asset && f.preview_asset.url,
+      f.preview_url,
+      f.document_asset && f.document_asset.url,
+      f.thumbnail_asset && f.thumbnail_asset.url,
+      f.thumbnail_url
+    ].filter(u => typeof u === 'string' && u.length > 0);
+    const id = f.file_uuid || f.uuid || f.file_name;
+    if (!id) return;
+    result.push({
+      id: `claude:${id}`,
+      kind: f.file_kind === 'image' ? 'image' : 'file',
+      name: f.file_name || id,
+      source: { platform: 'claude', urls }
+    });
+  });
+
+  (Array.isArray(m.attachments) ? m.attachments : []).forEach((a, i) => {
+    if (!a || typeof a.extracted_content !== 'string' || !a.extracted_content) return;
+    const name = a.file_name || `attachment-${i + 1}`;
+    result.push({
+      id: `claude:text:${m.uuid || ''}:${i}`,
+      kind: 'file',
+      name: /\.(txt|md)$/i.test(name) ? name : `${name}.txt`,
+      note: 'text extracted by Claude',
+      inlineText: a.extracted_content
+    });
+  });
+
+  return result;
 }
 
 function orderClaudeMessages(rawMessages, leafId) {
@@ -1124,17 +1436,28 @@ function cleanMessageContent(text) {
 const SPEAKER_LABEL_PREFIX = /^\s*(you said|user said|i said|chatgpt said|claude said|gemini said|deepseek said|assistant said|你说|您说|ChatGPT\s*说|ChatGPT\s*說)\s*[:：]\s*/i;
 
 // 追加一条消息：同一角色的完全相同内容（同一条消息被读到两次）直接跳过；
-// mergeSameRole 时，同一角色的相邻片段合并成一条
-function appendMessage(messages, role, content, { mergeSameRole = false } = {}) {
+// mergeSameRole 时，同一角色的相邻片段合并成一条（文字和附件都合并）
+function appendMessage(messages, role, content, { mergeSameRole = false, attachments = [] } = {}) {
   const last = messages[messages.length - 1];
+  const attachmentKey = list => (list || []).map(a => a.id).join('|');
+
   if (last && last.role === role) {
-    if (last.content === content) return;
+    if (last.content === content && attachmentKey(last.attachments) === attachmentKey(attachments)) return;
     if (mergeSameRole) {
-      last.content = `${last.content}\n\n${content}`;
+      // 附件出现在一轮回答的中间（例如"正在生成" → 图片 → "已经生成好了"），
+      // 在文字里留一个位置标记，导出时图片就出现在原来的位置
+      const markers = attachments.map(a => attachmentMarker(a.id));
+      last.content = [last.content, ...markers, content].filter(Boolean).join('\n\n');
+      if (attachments.length > 0) {
+        last.attachments = [...(last.attachments || []), ...attachments];
+      }
       return;
     }
   }
-  messages.push({ role, content });
+
+  const message = { role, content };
+  if (attachments.length > 0) message.attachments = attachments;
+  messages.push(message);
 }
 
 // 所有平台、所有提取路径的出口：去掉混进来的说话人标签，再去掉相邻重复
@@ -1142,7 +1465,8 @@ function normalizeConversation(messages) {
   const result = [];
   (messages || []).forEach(m => {
     const content = String(m.content || '').replace(SPEAKER_LABEL_PREFIX, '').trim();
-    if (content) appendMessage(result, m.role, content);
+    const attachments = m.attachments || [];
+    if (content || attachments.length > 0) appendMessage(result, m.role, content, { attachments });
   });
   return result;
 }

@@ -187,6 +187,11 @@ header {
     width: 100%;
 }
 
+.controls-row.single {
+    grid-template-columns: 1fr;
+    margin-top: 8px;
+}
+
 .controls .action-btn {
     width: 100%;
     padding: 12px 8px;
